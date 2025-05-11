@@ -11,8 +11,6 @@ import org.springframework.security.authentication.UsernamePasswordAuthenticatio
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.core.userdetails.User;
-import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.filter.OncePerRequestFilter;
 import java.io.IOException;
 import java.util.Collections;
@@ -35,13 +33,11 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
             GrantedAuthority authority = new SimpleGrantedAuthority("ROLE_" + role); // ROLE_ 접두어 추가
             // 사용자 정보와 권한을 가진 Authentication 객체 생성
-            UserDetails userDetails = new User(name, "", Collections.singletonList(authority));
             UsernamePasswordAuthenticationToken authentication =
-                    new UsernamePasswordAuthenticationToken(userDetails, null, userDetails.getAuthorities());
+                    new UsernamePasswordAuthenticationToken(name, null, Collections.singletonList(authority));
 
             // 인증 정보 설정 (SecurityContext에 저장)
             SecurityContextHolder.getContext().setAuthentication(authentication);
-            log.info("Auth set: {}", SecurityContextHolder.getContext().getAuthentication());
         }
 
         filterChain.doFilter(request, response);
