@@ -41,14 +41,14 @@ erDiagram
     DECIMAL amount
     }
     
-    DEPOSIT_REQUEST {
+    DEPOSIT {
     LONG id PK
     LONG user_id FK
     DECIMAL amount
     ENUM status "PENDING | COMPLETED | CANCELLED"
       }
     
-    WITHDRAW_REQUEST {
+    WITHDRAW {
     LONG id PK
     LONG user_id FK
     DECIMAL amount
@@ -65,8 +65,8 @@ erDiagram
     }
     
     USER ||--o{ WALLET : "has"
-    USER ||--o{ DEPOSIT_REQUEST : "requests"
-    USER ||--o{ WITHDRAW_REQUEST : "requests"
+    USER ||--o{ DEPOSIT : "requests"
+    USER ||--o{ WITHDRAW : "requests"
     USER ||--o{ ORDER : "places"
     USER ||--o{ ADMIN_ACTION_LOG : "logs (admin)"
     
@@ -136,7 +136,7 @@ erDiagram
 
 ---
 
-## DEPOSIT_REQUEST (입금 요청)
+## DEPOSIT (입금 요청)
 | 컬럼명     | 타입       | 설명                                         |
 |------------|------------|----------------------------------------------|
 | id         | LONG       | 요청 고유 ID (PK)                            |
@@ -146,7 +146,7 @@ erDiagram
 
 ---
 
-## WITHDRAW_REQUEST (출금 요청)
+## WITHDRAW (출금 요청)
 | 컬럼명     | 타입       | 설명                                         |
 |------------|------------|----------------------------------------------|
 | id         | LONG       | 요청 고유 ID (PK)                            |

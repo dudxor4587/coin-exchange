@@ -9,7 +9,7 @@ import java.math.BigDecimal;
 
 @Entity
 @Getter
-public class DepositRequest extends BaseTimeEntity {
+public class Deposit extends BaseTimeEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

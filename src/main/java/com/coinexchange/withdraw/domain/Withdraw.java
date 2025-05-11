@@ -9,7 +9,7 @@ import java.math.BigDecimal;
 
 @Entity
 @Getter
-public class WithdrawRequest extends BaseTimeEntity {
+public class Withdraw extends BaseTimeEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
