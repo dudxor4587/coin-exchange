@@ -1,0 +1,15 @@
+version: '3.8'
+
+services:
+  coin-exchange-mysql:
+    image: mysql:8.0
+    container_name: coin-exchange-mysql
+    ports:
+      - "3302:3306"
+    environment:
+      MYSQL_ROOT_PASSWORD: 1234
+      MYSQL_DATABASE: coinExchange
+      MYSQL_TIMEZONE: Asia/Seoul
+      LANG: ko_KR.UTF-8
+    restart: always
+    command: --default-time-zone='+09:00'
