@@ -13,3 +13,14 @@ services:
       LANG: ko_KR.UTF-8
     restart: always
     command: --default-time-zone='+09:00'
+
+  coin-exchange-rabbitmq:
+    image: rabbitmq:3-management
+    container_name: coin-exchange-rabbitmq
+    ports:
+      - "5672:5672"     # AMQP
+      - "15672:15672"   # RabbitMQ 웹 관리 콘솔
+    environment:
+      RABBITMQ_DEFAULT_USER: guest
+      RABBITMQ_DEFAULT_PASS: guest
+    restart: always

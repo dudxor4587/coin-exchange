@@ -26,7 +26,7 @@ public class UserService {
 
         user.isMatchPassword(password, passwordEncoder);
 
-        return jwtTokenProvider.createToken(user.getName(), user.getRole().name());
+        return jwtTokenProvider.createToken(user.getId(), user.getRole().name());
     }
 
     public void signUp(String email, String password, String name, String phoneNumber) {

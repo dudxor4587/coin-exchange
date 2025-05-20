@@ -22,15 +22,26 @@ erDiagram
     ENUM currency "KRW | BTC | ALT"
     DECIMAL balance
     }
-    
+
     ORDER {
     LONG id PK
     LONG user_id FK
     LONG coin_id FK
     ENUM order_type "LIMIT | MARKET"
+    ENUM order_side "BUY | SELL"
     DECIMAL price
     DECIMAL amount
+    DECIMAL filled_amount
     ENUM status "PENDING | PARTIAL | FILLED | CANCELLED"
+    }
+    
+    ORDER_BOOK {
+    LONG id PK
+    LONG coin_id FK
+    ENUM order_side "BUY | SELL"
+    DECIMAL price
+    DECIMAL remaining_amount
+    DATETIME created_at
     }
     
     TRADE {
@@ -45,7 +56,7 @@ erDiagram
     LONG id PK
     LONG user_id FK
     DECIMAL amount
-    ENUM status "PENDING | COMPLETED | CANCELLED"
+    ENUM status "PENDING | COMPLETED | REJECTED"
       }
     
     WITHDRAW {
@@ -72,6 +83,7 @@ erDiagram
     
     COIN ||--o{ ORDER : "orders"
     COIN ||--o{ TRADE : "traded in"
+    COIN ||--o{ ORDER_BOOK : "order depth"
     
     ORDER ||--o{ TRADE : "trades"
     
@@ -113,15 +125,31 @@ erDiagram
 ---
 
 ## ORDER (주문 정보)
-| 컬럼명     | 타입       | 설명                                                   |
-|------------|------------|--------------------------------------------------------|
-| id         | LONG       | 주문 고유 ID (PK)                                      |
-| user_id    | LONG       | 주문을 낸 사용자 ID (FK)                               |
-| coin_id    | LONG       | 주문 대상 코인 ID (FK)                                 |
-| order_type | ENUM       | 주문 유형 (LIMIT: 지정가, MARKET: 시장가)              |
-| price      | DECIMAL    | 주문 가격 (MARKET일 경우 0)                            |
-| amount     | DECIMAL    | 주문 수량                                              |
-| status     | ENUM       | 주문 상태 (PENDING, PARTIAL, FILLED, CANCELLED 중 하나)|
+
+| 컬럼명        | 타입     | 설명                                                                 |
+|---------------|----------|----------------------------------------------------------------------|
+| id            | LONG     | 주문 고유 ID (PK)                                                    |
+| user_id       | LONG     | 주문을 낸 사용자 ID (FK)                                             |
+| coin_id       | LONG     | 주문 대상 코인 ID (FK)                                               |
+| order_type    | ENUM     | 주문 유형 (`LIMIT`: 지정가, `MARKET`: 시장가)                        |
+| order_side    | ENUM     | 주문 방향 (`BUY`: 매수, `SELL`: 매도)                                |
+| price         | DECIMAL  | 주문 가격 (`MARKET`일 경우 일반적으로 0 또는 NULL 처리)              |
+| amount        | DECIMAL  | 주문 총 수량                                                         |
+| filled_amount | DECIMAL  | 체결된 수량 (부분 체결 시 누적)                                     |
+| status        | ENUM     | 주문 상태 (`PENDING`, `PARTIAL`, `FILLED`, `CANCELLED` 중 하나)      |
+
+---
+
+## ORDER_BOOK (호가 정보)
+
+| 컬럼명           | 타입     | 설명                                                               |
+|------------------|----------|--------------------------------------------------------------------|
+| id               | LONG     | 호가 정보 고유 ID (PK)                                             |
+| coin_id          | LONG     | 해당 호가가 속한 코인 ID (FK)                                      |
+| order_side       | ENUM     | 호가 방향 (`BUY`: 매수 호가, `SELL`: 매도 호가)                    |
+| price            | DECIMAL  | 호가 가격                                                           |
+| remaining_amount | DECIMAL  | 해당 가격에 남아 있는 주문 수량                                   |
+| created_at       | DATETIME | 해당 호가가 처음 생성된 시점 (호가 갱신 우선순위 판단 시 사용 가능) |
 
 ---
 
@@ -137,12 +165,12 @@ erDiagram
 ---
 
 ## DEPOSIT (입금 요청)
-| 컬럼명     | 타입       | 설명                                         |
-|------------|------------|----------------------------------------------|
-| id         | LONG       | 요청 고유 ID (PK)                            |
-| user_id    | LONG       | 요청 사용자 ID (FK)                          |
-| amount     | DECIMAL    | 요청 입금 금액                               |
-| status     | ENUM       | 요청 상태 (PENDING, COMPLETED, CANCELLED 중 하나)|
+| 컬럼명     | 타입       | 설명                                        |
+|------------|------------|-------------------------------------------|
+| id         | LONG       | 요청 고유 ID (PK)                             |
+| user_id    | LONG       | 요청 사용자 ID (FK)                            |
+| amount     | DECIMAL    | 요청 입금 금액                                  |
+| status     | ENUM       | 요청 상태 (PENDING, COMPLETED, REJECTED 중 하나) |
 
 ---
 

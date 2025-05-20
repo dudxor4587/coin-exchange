@@ -28,13 +28,13 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
         String token = resolveToken(request);
         if (token != null && jwtTokenProvider.validateToken(token)) {
-            String name = jwtTokenProvider.getNameFromToken(token);
+            Long id = jwtTokenProvider.getIdFromToken(token);
             String role = jwtTokenProvider.getRoleFromToken(token).name();
 
             GrantedAuthority authority = new SimpleGrantedAuthority("ROLE_" + role); // ROLE_ 접두어 추가
             // 사용자 정보와 권한을 가진 Authentication 객체 생성
             UsernamePasswordAuthenticationToken authentication =
-                    new UsernamePasswordAuthenticationToken(name, null, Collections.singletonList(authority));
+                    new UsernamePasswordAuthenticationToken(id, null, Collections.singletonList(authority));
 
             // 인증 정보 설정 (SecurityContext에 저장)
             SecurityContextHolder.getContext().setAuthentication(authentication);

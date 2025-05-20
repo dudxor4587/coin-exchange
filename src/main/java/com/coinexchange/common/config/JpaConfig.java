@@ -1,4 +1,4 @@
-package com.coinexchange.auth.config;
+package com.coinexchange.common.config;
 
 import org.springframework.context.annotation.Configuration;
 import org.springframework.data.jpa.repository.config.EnableJpaAuditing;
