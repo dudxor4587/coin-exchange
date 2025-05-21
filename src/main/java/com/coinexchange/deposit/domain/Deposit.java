@@ -33,6 +33,9 @@ public class Deposit extends BaseTimeEntity {
     @Enumerated(EnumType.STRING)
     private Status status;
 
+    @Column(nullable = true)
+    private String rejectReason;
+
     public enum Status {
         PENDING, COMPLETED, REJECTED
     }
@@ -53,10 +56,11 @@ public class Deposit extends BaseTimeEntity {
         this.status = Status.COMPLETED;
     }
 
-    public void reject() {
+    public void reject(String reason) {
         if (this.status != Status.PENDING) {
             throw new DepositException(DEPOSIT_STATUS_NOT_PENDING);
         }
         this.status = Status.REJECTED;
+        this.rejectReason = reason;
     }
 }

@@ -1,6 +1,6 @@
 package com.coinexchange.admin.presentation.dto;
 
-public record DepositManagementRequest(
+public record DepositApproveRequest(
         Long depositId
 ) {
 }
