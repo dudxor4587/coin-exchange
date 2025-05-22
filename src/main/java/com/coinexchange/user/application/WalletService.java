@@ -1,5 +1,6 @@
 package com.coinexchange.user.application;
 
+import com.coinexchange.notification.application.NotificationService;
 import com.coinexchange.user.domain.User;
 import com.coinexchange.user.domain.Wallet;
 import com.coinexchange.user.domain.repository.UserRepository;
@@ -20,6 +21,7 @@ public class WalletService {
 
     private final WalletRepository walletRepository;
     private final UserRepository userRepository;
+    private final NotificationService notificationService;
 
     public void processDeposit(Long userId, BigDecimal amount) {
         User user = userRepository.findById(userId)
@@ -35,5 +37,6 @@ public class WalletService {
         walletRepository.save(wallet);
 
         log.info("지갑 잔액 갱신 완료: userId={}, 변경된 잔액={}", userId, wallet.getBalance());
+        notificationService.sendDepositNotification(userId, amount);
     }
 }

@@ -12,6 +12,6 @@ public class LogNotificationSender implements NotificationSender {
 
     @Override
     public void send(Long userId, String message) {
-        log.info("입금 거절 알림 전송: userId={}, reason={}", userId, message);
+        log.info("알림 전송: userId={}, {}", userId, message);
     }
 }

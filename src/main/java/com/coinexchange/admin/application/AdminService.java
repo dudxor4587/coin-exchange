@@ -1,13 +1,12 @@
 package com.coinexchange.admin.application;
 
-import com.coinexchange.admin.application.publisher.DepositApprovedEventPublisher;
-import com.coinexchange.admin.application.publisher.DepositRejectedEventPublisher;
 import com.coinexchange.deposit.domain.Deposit;
 import com.coinexchange.deposit.domain.repository.DepositRepository;
 import com.coinexchange.deposit.event.DepositApprovedEvent;
 import com.coinexchange.deposit.event.DepositRejectedEvent;
 import com.coinexchange.deposit.exception.DepositException;
 import lombok.RequiredArgsConstructor;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -18,8 +17,7 @@ import static com.coinexchange.deposit.exception.DepositExceptionType.DEPOSIT_NO
 public class AdminService {
 
     private final DepositRepository depositRepository;
-    private final DepositApprovedEventPublisher approvedEventPublisher;
-    private final DepositRejectedEventPublisher rejectedEventPublisher;
+    private final ApplicationEventPublisher eventPublisher;
 
     @Transactional
     public void approveDeposit(Long depositId) {
@@ -28,12 +26,12 @@ public class AdminService {
 
         deposit.approve();
 
-        approvedEventPublisher.publish(new DepositApprovedEvent(
+        depositRepository.save(deposit);
+
+        eventPublisher.publishEvent(new DepositApprovedEvent(
                 deposit.getUser().getId(),
                 deposit.getAmount()
         ));
-
-        depositRepository.save(deposit);
     }
 
     @Transactional
@@ -43,11 +41,11 @@ public class AdminService {
 
         deposit.reject(reason);
 
-        rejectedEventPublisher.publish(new DepositRejectedEvent(
+        depositRepository.save(deposit);
+
+        eventPublisher.publishEvent(new DepositRejectedEvent(
                 deposit.getUser().getId(),
                 reason
         ));
-
-        depositRepository.save(deposit);
     }
 }
