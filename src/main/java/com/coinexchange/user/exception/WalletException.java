@@ -14,4 +14,8 @@ public class WalletException extends BaseException {
         return walletExceptionType;
     }
 
+    @Override
+    public String errorMessage() {
+        return walletExceptionType.errorMessage();
+    }
 }

@@ -13,4 +13,9 @@ public class DepositException extends BaseException {
     public BaseExceptionType exceptionType() {
         return depositExceptionType;
     }
+
+    @Override
+    public String errorMessage() {
+        return depositExceptionType.errorMessage();
+    }
 }

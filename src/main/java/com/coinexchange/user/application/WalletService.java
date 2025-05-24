@@ -10,6 +10,7 @@ import com.coinexchange.user.exception.WalletException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 
@@ -25,11 +26,12 @@ public class WalletService {
     private final UserRepository userRepository;
     private final NotificationService notificationService;
 
+    @Transactional
     public void processDeposit(Long userId, BigDecimal amount) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new UserException(USER_NOT_FOUND));
 
-        Wallet wallet = walletRepository.findByUserIdAndCurrency(userId, Wallet.Currency.KRW)
+        Wallet wallet = walletRepository.findByUserIdAndCurrencyForUpdate(userId, Wallet.Currency.KRW)
                 .orElseGet(() -> Wallet.builder()
                         .user(user)
                         .currency(Wallet.Currency.KRW)
@@ -42,8 +44,9 @@ public class WalletService {
         notificationService.sendDepositNotification(userId, amount);
     }
 
+    @Transactional
     public void processWithdraw(Long userId, BigDecimal amount) {
-        Wallet wallet = walletRepository.findByUserIdAndCurrency(userId, Wallet.Currency.KRW)
+        Wallet wallet = walletRepository.findByUserIdAndCurrencyForUpdate(userId, Wallet.Currency.KRW)
                 .orElseThrow(() -> new WalletException(WALLET_NOT_FOUND));
 
         wallet.decreaseBalance(amount);

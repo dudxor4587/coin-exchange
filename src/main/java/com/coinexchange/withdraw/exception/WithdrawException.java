@@ -14,4 +14,9 @@ public class WithdrawException extends BaseException {
         return withdrawExceptionType;
     }
 
+    @Override
+    public String errorMessage() {
+        return withdrawExceptionType.errorMessage();
+    }
+
 }

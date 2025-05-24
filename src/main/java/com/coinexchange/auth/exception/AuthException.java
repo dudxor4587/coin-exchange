@@ -13,4 +13,9 @@ public class AuthException extends BaseException {
     public BaseExceptionType exceptionType() {
         return authExceptionType;
     }
+
+    @Override
+    public String errorMessage() {
+        return authExceptionType.errorMessage();
+    }
 }

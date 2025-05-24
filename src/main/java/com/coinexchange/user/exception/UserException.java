@@ -13,4 +13,9 @@ public class UserException extends BaseException {
     public BaseExceptionType exceptionType() {
         return userExceptionType;
     }
+
+    @Override
+    public String errorMessage() {
+        return userExceptionType.errorMessage();
+    }
 }

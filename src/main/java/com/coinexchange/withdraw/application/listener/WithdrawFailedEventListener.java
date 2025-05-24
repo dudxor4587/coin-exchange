@@ -12,7 +12,7 @@ import static com.coinexchange.common.config.RabbitMQConfig.WITHDRAW_FAILURE_QUE
 @Component
 @RequiredArgsConstructor
 @Slf4j
-public class WithdrawFailureEventListener {
+public class WithdrawFailedEventListener {
 
     private final WithdrawService withdrawService;
 
