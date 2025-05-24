@@ -6,6 +6,7 @@ import com.coinexchange.user.domain.Wallet;
 import com.coinexchange.user.domain.repository.UserRepository;
 import com.coinexchange.user.domain.repository.WalletRepository;
 import com.coinexchange.user.exception.UserException;
+import com.coinexchange.user.exception.WalletException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -13,6 +14,7 @@ import org.springframework.stereotype.Service;
 import java.math.BigDecimal;
 
 import static com.coinexchange.user.exception.UserExceptionType.USER_NOT_FOUND;
+import static com.coinexchange.user.exception.WalletExceptionType.WALLET_NOT_FOUND;
 
 @Service
 @Slf4j
@@ -36,7 +38,22 @@ public class WalletService {
         wallet.increaseBalance(amount);
         walletRepository.save(wallet);
 
-        log.info("지갑 잔액 갱신 완료: userId={}, 변경된 잔액={}", userId, wallet.getBalance());
+        walletLogger(userId, amount);
         notificationService.sendDepositNotification(userId, amount);
+    }
+
+    public void processWithdraw(Long userId, BigDecimal amount) {
+        Wallet wallet = walletRepository.findByUserIdAndCurrency(userId, Wallet.Currency.KRW)
+                .orElseThrow(() -> new WalletException(WALLET_NOT_FOUND));
+
+        wallet.decreaseBalance(amount);
+        walletRepository.save(wallet);
+
+        walletLogger(userId, amount);
+        notificationService.sendWithdrawNotification(userId, amount);
+    }
+
+    private void walletLogger(Long userId, BigDecimal amount) {
+        log.info("지갑 처리 완료: userId={}, amount={}", userId, amount);
     }
 }

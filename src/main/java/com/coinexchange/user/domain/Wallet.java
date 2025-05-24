@@ -1,12 +1,15 @@
 package com.coinexchange.user.domain;
 
 import com.coinexchange.common.domain.BaseTimeEntity;
+import com.coinexchange.user.exception.WalletException;
 import jakarta.persistence.*;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
 import java.math.BigDecimal;
+
+import static com.coinexchange.user.exception.WalletExceptionType.INSUFFICIENT_BALANCE;
 
 @Entity
 @Getter
@@ -38,5 +41,12 @@ public class Wallet extends BaseTimeEntity {
 
     public void increaseBalance(BigDecimal amount) {
         this.balance = this.balance.add(amount);
+    }
+
+    public void decreaseBalance(BigDecimal amount) {
+        if (this.balance.compareTo(amount) < 0) {
+            throw new WalletException(INSUFFICIENT_BALANCE);
+        }
+        this.balance = this.balance.subtract(amount);
     }
 }

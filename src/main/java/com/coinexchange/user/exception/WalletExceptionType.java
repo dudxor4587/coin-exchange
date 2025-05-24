@@ -4,15 +4,14 @@ import com.coinexchange.common.exception.BaseExceptionType;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 
-import static org.springframework.http.HttpStatus.*;
-
+import static org.springframework.http.HttpStatus.BAD_REQUEST;
+import static org.springframework.http.HttpStatus.NOT_FOUND;
 
 @RequiredArgsConstructor
-public enum UserExceptionType implements BaseExceptionType {
+public enum WalletExceptionType implements BaseExceptionType {
 
-    USER_NOT_FOUND(NOT_FOUND, "User not found"),
-    PASSWORD_MISMATCH(UNAUTHORIZED, "Password mismatch"),
-    EMAIL_ALREADY_EXISTS(BAD_REQUEST, "Email already exists"),
+    WALLET_NOT_FOUND(NOT_FOUND, "지갑을 찾을 수 없습니다."),
+    INSUFFICIENT_BALANCE(BAD_REQUEST, "잔액이 부족합니다."),
     ;
 
     private final HttpStatus httpStatus;

@@ -19,6 +19,6 @@ public class DepositRejectedEventListener {
     @RabbitListener(queues = DEPOSIT_REJECT_QUEUE)
     public void handleDepositRejected(DepositRejectedEvent event) {
         log.info("입금 거절 이벤트 수신: userId={}, reason={}", event.userId(), event.reason());
-        notificationService.sendRejectionNotification(event.userId(), event.reason());
+        notificationService.sendDepositRejectionNotification(event.userId(), event.reason());
     }
 }
