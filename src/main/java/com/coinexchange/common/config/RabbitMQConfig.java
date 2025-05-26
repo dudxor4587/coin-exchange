@@ -37,6 +37,16 @@ public class RabbitMQConfig {
     public static final String WITHDRAW_FAILURE_EXCHANGE = "withdraw.failure.exchange";
     public static final String WITHDRAW_FAILURE_ROUTING_KEY = "withdraw.failed";
 
+    // 매수 정보 저장 성공
+    public static final String ORDER_CREATED_QUEUE = "order.created.queue";
+    public static final String ORDER_CREATED_EXCHANGE = "order.created.exchange";
+    public static final String ORDER_CREATED_ROUTING_KEY = "order.created";
+
+    // 주문 처리 실패
+    public static final String ORDER_PROCESSING_FAILED_QUEUE = "order.processing.failed.queue";
+    public static final String ORDER_PROCESSING_FAILED_EXCHANGE = "order.processing.failed.exchange";
+    public static final String ORDER_PROCESSING_FAILED_ROUTING_KEY = "order.processing.failed";
+
     // 입금 요청 승인 큐
     @Bean
     public Queue depositQueue() {
@@ -130,6 +140,44 @@ public class RabbitMQConfig {
                 .bind(withdrawFailureQueue)
                 .to(withdrawFailureExchange)
                 .with(WITHDRAW_FAILURE_ROUTING_KEY);
+    }
+
+    // 매수 정보 저장 큐
+    @Bean
+    public Queue orderCreatedQueue() {
+        return new Queue(ORDER_CREATED_QUEUE);
+    }
+
+    @Bean
+    public TopicExchange orderCreatedExchange() {
+        return new TopicExchange(ORDER_CREATED_EXCHANGE);
+    }
+
+    @Bean
+    public Binding orderCreatedBinding(Queue orderCreatedQueue, TopicExchange orderCreatedExchange) {
+        return BindingBuilder
+                .bind(orderCreatedQueue)
+                .to(orderCreatedExchange)
+                .with(ORDER_CREATED_ROUTING_KEY);
+    }
+
+    // 주문 처리 실패 큐
+    @Bean
+    public Queue orderProcessingFailedQueue() {
+        return new Queue(ORDER_PROCESSING_FAILED_QUEUE);
+    }
+
+    @Bean
+    public TopicExchange orderProcessingFailedExchange() {
+        return new TopicExchange(ORDER_PROCESSING_FAILED_EXCHANGE);
+    }
+
+    @Bean
+    public Binding orderProcessingFailedBinding(Queue orderProcessingFailedQueue, TopicExchange orderProcessingFailedExchange) {
+        return BindingBuilder
+                .bind(orderProcessingFailedQueue)
+                .to(orderProcessingFailedExchange)
+                .with(ORDER_PROCESSING_FAILED_ROUTING_KEY);
     }
 
     @Bean

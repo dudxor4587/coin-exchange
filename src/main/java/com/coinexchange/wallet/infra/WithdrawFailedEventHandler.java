@@ -1,4 +1,4 @@
-package com.coinexchange.user.infra;
+package com.coinexchange.wallet.infra;
 
 import com.coinexchange.withdraw.event.WithdrawFailedEvent;
 import lombok.RequiredArgsConstructor;

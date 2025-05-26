@@ -1,4 +1,4 @@
-package com.coinexchange.user.exception;
+package com.coinexchange.wallet.exception;
 
 import com.coinexchange.common.exception.BaseExceptionType;
 import lombok.RequiredArgsConstructor;

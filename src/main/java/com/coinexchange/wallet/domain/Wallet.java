@@ -1,7 +1,7 @@
-package com.coinexchange.user.domain;
+package com.coinexchange.wallet.domain;
 
 import com.coinexchange.common.domain.BaseTimeEntity;
-import com.coinexchange.user.exception.WalletException;
+import com.coinexchange.wallet.exception.WalletException;
 import jakarta.persistence.*;
 import lombok.Builder;
 import lombok.Getter;
@@ -9,7 +9,7 @@ import lombok.NoArgsConstructor;
 
 import java.math.BigDecimal;
 
-import static com.coinexchange.user.exception.WalletExceptionType.INSUFFICIENT_BALANCE;
+import static com.coinexchange.wallet.exception.WalletExceptionType.INSUFFICIENT_BALANCE;
 
 @Entity
 @Getter
@@ -20,8 +20,7 @@ public class Wallet extends BaseTimeEntity {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @ManyToOne
-    private User user;
+    private Long userId;
 
     @Enumerated(EnumType.STRING)
     private Currency currency;
@@ -33,8 +32,8 @@ public class Wallet extends BaseTimeEntity {
     }
 
     @Builder
-    public Wallet(User user, Currency currency) {
-        this.user = user;
+    public Wallet(Long userId, Currency currency) {
+        this.userId = userId;
         this.currency = currency;
         this.balance = BigDecimal.ZERO;
     }

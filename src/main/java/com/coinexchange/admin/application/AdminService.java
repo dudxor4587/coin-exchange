@@ -36,7 +36,7 @@ public class AdminService {
         depositRepository.save(deposit);
 
         eventPublisher.publishEvent(new DepositApprovedEvent(
-                deposit.getUser().getId(),
+                deposit.getUserId(),
                 deposit.getAmount()
         ));
     }
@@ -51,7 +51,7 @@ public class AdminService {
         depositRepository.save(deposit);
 
         eventPublisher.publishEvent(new DepositRejectedEvent(
-                deposit.getUser().getId(),
+                deposit.getUserId(),
                 reason
         ));
     }
@@ -66,7 +66,7 @@ public class AdminService {
         withdrawRepository.save(withdraw);
 
         eventPublisher.publishEvent(new WithdrawApprovedEvent(
-                withdraw.getUser().getId(),
+                withdraw.getUserId(),
                 withdraw.getAmount(),
                 withdraw.getId()
         ));
@@ -81,7 +81,7 @@ public class AdminService {
         withdrawRepository.save(withdraw);
 
         eventPublisher.publishEvent(new WithdrawRejectedEvent(
-                withdraw.getUser().getId(),
+                withdraw.getUserId(),
                 reason,
                 withdraw.getId()
         ));

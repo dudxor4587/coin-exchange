@@ -2,7 +2,6 @@ package com.coinexchange.deposit.domain;
 
 import com.coinexchange.common.domain.BaseTimeEntity;
 import com.coinexchange.deposit.exception.DepositException;
-import com.coinexchange.user.domain.User;
 import jakarta.persistence.*;
 import lombok.Builder;
 import lombok.Getter;
@@ -21,8 +20,7 @@ public class Deposit extends BaseTimeEntity {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @ManyToOne
-    private User user;
+    private Long userId;
 
     private BigDecimal amount;
 
@@ -41,8 +39,8 @@ public class Deposit extends BaseTimeEntity {
     }
 
     @Builder
-    public Deposit(User user, BigDecimal amount, String bank, String accountNumber, Status status) {
-        this.user = user;
+    public Deposit(Long userId, BigDecimal amount, String bank, String accountNumber, Status status) {
+        this.userId = userId;
         this.amount = amount;
         this.bank = bank;
         this.accountNumber = accountNumber;

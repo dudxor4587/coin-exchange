@@ -1,6 +1,5 @@
-package com.coinexchange.order.domain;
+package com.coinexchange.trade.domain;
 
-import com.coinexchange.coin.domain.Coin;
 import com.coinexchange.common.domain.BaseTimeEntity;
 import jakarta.persistence.*;
 import lombok.Getter;
@@ -15,11 +14,9 @@ public class Trade extends BaseTimeEntity {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @ManyToOne
-    private Order order;
+    private Long orderId;
 
-    @ManyToOne
-    private Coin coin;
+    private Long coinId;
 
     private BigDecimal price;
 

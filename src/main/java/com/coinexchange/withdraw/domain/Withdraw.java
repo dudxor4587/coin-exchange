@@ -1,7 +1,6 @@
 package com.coinexchange.withdraw.domain;
 
 import com.coinexchange.common.domain.BaseTimeEntity;
-import com.coinexchange.user.domain.User;
 import com.coinexchange.withdraw.exception.WithdrawException;
 import jakarta.persistence.*;
 import lombok.Builder;
@@ -21,8 +20,7 @@ public class Withdraw extends BaseTimeEntity {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @ManyToOne
-    private User user;
+    private Long userId;
 
     private BigDecimal amount;
 
@@ -44,8 +42,8 @@ public class Withdraw extends BaseTimeEntity {
     }
 
     @Builder
-    public Withdraw(User user, BigDecimal amount, String bank, String accountNumber, Withdraw.Status status) {
-        this.user = user;
+    public Withdraw(Long userId, BigDecimal amount, String bank, String accountNumber, Withdraw.Status status) {
+        this.userId = userId;
         this.amount = amount;
         this.bank = bank;
         this.accountNumber = accountNumber;

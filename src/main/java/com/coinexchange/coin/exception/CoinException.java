@@ -1,21 +1,21 @@
-package com.coinexchange.user.exception;
+package com.coinexchange.coin.exception;
 
 import com.coinexchange.common.exception.BaseException;
 import com.coinexchange.common.exception.BaseExceptionType;
 import lombok.RequiredArgsConstructor;
 
 @RequiredArgsConstructor
-public class WalletException extends BaseException {
+public class CoinException extends BaseException {
 
-    private final WalletExceptionType walletExceptionType;
+    private final CoinExceptionType coinExceptionType;
 
     @Override
     public BaseExceptionType exceptionType() {
-        return walletExceptionType;
+        return coinExceptionType;
     }
 
     @Override
     public String errorMessage() {
-        return walletExceptionType.errorMessage();
+        return coinExceptionType.errorMessage();
     }
 }

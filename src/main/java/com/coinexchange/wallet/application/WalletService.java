@@ -1,12 +1,9 @@
-package com.coinexchange.user.application;
+package com.coinexchange.wallet.application;
 
 import com.coinexchange.notification.application.NotificationService;
-import com.coinexchange.user.domain.User;
-import com.coinexchange.user.domain.Wallet;
-import com.coinexchange.user.domain.repository.UserRepository;
-import com.coinexchange.user.domain.repository.WalletRepository;
-import com.coinexchange.user.exception.UserException;
-import com.coinexchange.user.exception.WalletException;
+import com.coinexchange.wallet.domain.Wallet;
+import com.coinexchange.wallet.domain.repository.WalletRepository;
+import com.coinexchange.wallet.exception.WalletException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -14,8 +11,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 
-import static com.coinexchange.user.exception.UserExceptionType.USER_NOT_FOUND;
-import static com.coinexchange.user.exception.WalletExceptionType.WALLET_NOT_FOUND;
+import static com.coinexchange.wallet.exception.WalletExceptionType.WALLET_NOT_FOUND;
 
 @Service
 @Slf4j
@@ -23,17 +19,13 @@ import static com.coinexchange.user.exception.WalletExceptionType.WALLET_NOT_FOU
 public class WalletService {
 
     private final WalletRepository walletRepository;
-    private final UserRepository userRepository;
     private final NotificationService notificationService;
 
     @Transactional
     public void processDeposit(Long userId, BigDecimal amount) {
-        User user = userRepository.findById(userId)
-                .orElseThrow(() -> new UserException(USER_NOT_FOUND));
-
         Wallet wallet = walletRepository.findByUserIdAndCurrencyForUpdate(userId, Wallet.Currency.KRW)
                 .orElseGet(() -> Wallet.builder()
-                        .user(user)
+                        .userId(userId)
                         .currency(Wallet.Currency.KRW)
                         .build());
 
@@ -58,5 +50,18 @@ public class WalletService {
 
     private void walletLogger(Long userId, BigDecimal amount) {
         log.info("지갑 처리 완료: userId={}, amount={}", userId, amount);
+    }
+
+    @Transactional
+    public void processOrder(Long userId, BigDecimal lockedFunds) {
+        Wallet wallet = walletRepository.findByUserIdAndCurrencyForUpdate(userId, Wallet.Currency.KRW)
+                .orElseThrow(() -> new WalletException(WALLET_NOT_FOUND));
+
+        wallet.decreaseBalance(lockedFunds);
+
+        walletRepository.save(wallet);
+
+        log.info("주문 처리 완료: userId={}, lockedFunds={}", userId, lockedFunds);
+        notificationService.sendOrderNotification(userId, lockedFunds);
     }
 }
