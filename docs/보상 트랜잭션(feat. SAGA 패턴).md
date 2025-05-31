@@ -68,7 +68,7 @@ SAGA 패턴의 동작 방식은 다음과 같다. <br>
 3. 이벤트를 구독하고 있는 서비스가 매수/매도 주문을 처리한다.
 4. 매수/매도 주문 처리 후, Trade 테이블에 거래 정보를 저장한다.
 5. 매수/매도 체결 처리를 진행한다.
-6. 매수/매도 체결 처리가 실패할 경우, Trade 테이블에 저장된 거래 정보를 삭제하는 보상 트랜잭션을 실행한다.
+6. 매수/매도 체결 처리가 실패할 경우, Trade과 OrderBook 테이블을 롤백하는 보상 트랜잭션을 실행한다.
 
 단편적으로 매수/매도 주문을 처리하는 시퀀스 다이어그램을 SAGA 패턴으로 변경하면 다음과 같다. <br>
 ```mermaid
@@ -108,8 +108,10 @@ sequenceDiagram
 
 %% 체결 실패 시 (비정상 경로)
     Note right of OrderService: 체결 처리 실패
-    OrderService-->>TradeService: 체결 실패 이벤트 발행 (OrderMatchFailedEvent)
+    OrderService-->>TradeService: 체결 실패 이벤트 발행 (TradeRollbackEvent)
     TradeService->>TradeService: 거래 정보 보상 트랜잭션 실행 (삭제 또는 취소)
+    OrderService-->>OrderBookService: 체결 실패 이벤트 발행 (OrderBookRollbackEvent)
+    OrderBookService->>OrderBookService: 주문 정보 보상 트랜잭션 실행 (삭제 또는 취소)
 
 %% 체결 완료 시 (정상 경로)
     CoinWalletService->>NotificationService: 매수 체결 완료 알림
