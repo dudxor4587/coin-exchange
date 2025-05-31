@@ -1,197 +1,260 @@
 ```mermaid
-erDiagram
-    USER {
-        LONG id PK
-        VARCHAR email
-        VARCHAR password
-        VARCHAR name
-        VARCHAR phone
-        ENUM role "USER | ADMIN"
+classDiagram
+    direction BT
+
+    class coin {
+        datetime(6) created_at
+        datetime(6) updated_at
+        varchar(255) name
+        enum symbol "btc | eth"
+        bigint id
     }
 
-    COIN {
-        LONG id PK
-        VARCHAR symbol
-        VARCHAR name
-        BOOLEAN is_listed
+    class coin_wallet {
+        datetime(6) created_at
+        datetime(6) updated_at
+        bigint amount
+        bigint coin_id
+        bigint user_id
+        bigint id
     }
 
-    WALLET {
-    LONG id PK
-    LONG user_id FK
-    ENUM currency "KRW | BTC | ALT"
-    DECIMAL balance
+    class deposit {
+        datetime(6) created_at
+        datetime(6) updated_at
+        varchar(255) account_number
+        decimal amount
+        varchar(255) bank
+        varchar(255) reject_reason
+        enum status "completed | pending | rejected"
+        bigint user_id
+        bigint id
     }
 
-    ORDER {
-    LONG id PK
-    LONG user_id FK
-    LONG coin_id FK
-    ENUM order_type "LIMIT | MARKET"
-    ENUM order_side "BUY | SELL"
-    DECIMAL price
-    DECIMAL amount
-    DECIMAL filled_amount
-    ENUM status "PENDING | PARTIAL | FILLED | CANCELLED"
+    class order {
+        datetime(6) created_at
+        datetime(6) updated_at
+        bigint coin_id
+        varchar(255) failed_reason
+        bigint filled_amount
+        decimal locked_funds
+        bigint order_amount
+        decimal price
+        enum status "cancelled | failed | filled | partial | pending"
+        enum type "buy | sell"
+        bigint user_id
+        bigint id
     }
-    
-    ORDER_BOOK {
-    LONG id PK
-    LONG coin_id FK
-    ENUM order_side "BUY | SELL"
-    DECIMAL price
-    DECIMAL remaining_amount
-    DATETIME created_at
-    }
-    
-    TRADE {
-    LONG id PK
-    LONG order_id FK
-    LONG coin_id FK
-    DECIMAL price
-    DECIMAL amount
-    }
-    
-    DEPOSIT {
-    LONG id PK
-    LONG user_id FK
-    DECIMAL amount
-    ENUM status "PENDING | COMPLETED | REJECTED"
-      }
-    
-    WITHDRAW {
-    LONG id PK
-    LONG user_id FK
-    DECIMAL amount
-    ENUM status "PENDING | COMPLETED | CANCELLED | REJECTED"
-      }
-    
-    ADMIN_ACTION_LOG {
-    LONG id PK
-    LONG admin_id FK
-    ENUM action_type "COIN_LISTING | COIN_DELISTING | WALLET_ADJUST"
-    LONG target_user_id FK
-    LONG coin_id FK
-    TEXT detail
-    }
-    
-    USER ||--o{ WALLET : "has"
-    USER ||--o{ DEPOSIT : "requests"
-    USER ||--o{ WITHDRAW : "requests"
-    USER ||--o{ ORDER : "places"
-    USER ||--o{ ADMIN_ACTION_LOG : "logs (admin)"
-    
-    COIN ||--o{ ORDER : "orders"
-    COIN ||--o{ TRADE : "traded in"
-    COIN ||--o{ ORDER_BOOK : "order depth"
-    
-    ORDER ||--o{ TRADE : "trades"
-    
-    ADMIN_ACTION_LOG ||--|| USER : "target"
 
+    class order_book {
+        datetime(6) created_at
+        datetime(6) updated_at
+        bigint coin_id
+        bigint order_id
+        decimal price
+        bigint remaining_amount
+        enum type "buy | sell"
+        bigint user_id
+        enum status "active | completed"
+        bigint id
+    }
+
+    class trade {
+        datetime(6) created_at
+        datetime(6) updated_at
+        bigint amount
+        bigint buy_order_id
+        bigint coin_id
+        decimal price
+        bigint sell_order_id
+        varchar(255) failed_reason
+        enum status "failed | success"
+        bigint id
+    }
+
+    class user {
+        datetime(6) created_at
+        datetime(6) updated_at
+        varchar(255) email
+        varchar(255) name
+        varchar(255) password
+        varchar(255) phone
+        enum role "admin | user"
+        bigint id
+    }
+
+    class wallet {
+        datetime(6) created_at
+        datetime(6) updated_at
+        decimal balance
+        enum currency "krw"
+        bigint user_id
+        bigint id
+    }
+
+    class withdraw {
+        datetime(6) created_at
+        datetime(6) updated_at
+        varchar(255) account_number
+        decimal amount
+        varchar(255) bank
+        varchar(255) failure_reason
+        varchar(255) reject_reason
+        enum status "completed | failed | pending | rejected"
+        bigint user_id
+        bigint id
+    }
+
+    coin_wallet --> coin : coin_id
+    coin_wallet --> user : user_id
+    deposit --> user : user_id
+    order --> coin : coin_id
+    order --> user : user_id
+    order_book --> coin : coin_id
+    order_book --> order : order_id
+    order_book --> user : user_id
+    trade --> coin : coin_id
+    wallet --> user : user_id
+    withdraw --> user : user_id
 ```
-# 📘 테이블 및 컬럼 설명
 
-## USER (사용자 정보)
-| 컬럼명     | 타입     | 설명                         |
-|------------|----------|------------------------------|
-| id         | LONG     | 사용자 고유 ID (PK)          |
-| email      | VARCHAR  | 사용자 이메일 (로그인 ID)    |
-| password   | VARCHAR  | 암호화된 비밀번호            |
-| name       | VARCHAR  | 사용자 이름                  |
-| phone      | VARCHAR  | 사용자 전화번호              |
-| role       | ENUM     | 사용자 역할 (USER 또는 ADMIN)|
+## 📘 테이블 및 컬럼 설명
 
 ---
 
-## COIN (상장된 코인 정보)
-| 컬럼명     | 타입     | 설명                              |
-|------------|----------|-----------------------------------|
-| id         | LONG     | 코인 고유 ID (PK)                 |
-| symbol     | VARCHAR  | 코인 심볼 (예: BTC, ETH)          |
-| name       | VARCHAR  | 코인 이름                         |
-| is_listed  | BOOLEAN  | 거래소에 상장 여부 (true/false)   |
+### 🧑‍💼 `user` (사용자 정보)
+
+| 컬럼명      | 타입          | 설명                                 |
+|------------|---------------|--------------------------------------|
+| `id`       | `bigint`      | 사용자 고유 ID (PK)                  |
+| `email`    | `varchar(255)`| 사용자 이메일 (로그인 ID)            |
+| `password` | `varchar(255)`| 암호화된 비밀번호                    |
+| `name`     | `varchar(255)`| 사용자 이름                          |
+| `phone`    | `varchar(255)`| 사용자 전화번호                      |
+| `role`     | `enum`        | 사용자 역할 (`admin`, `user`)        |
+| `created_at` | `datetime(6)`| 생성일시                             |
+| `updated_at` | `datetime(6)`| 수정일시                             |
 
 ---
 
-## WALLET (사용자 지갑)
-| 컬럼명     | 타입       | 설명                                        |
-|------------|------------|---------------------------------------------|
-| id         | LONG       | 지갑 고유 ID (PK)                           |
-| user_id    | LONG       | 사용자 ID (FK)                              |
-| currency   | ENUM       | 지갑의 자산 종류 (KRW, BTC, ALT 중 하나)   |
-| balance    | DECIMAL    | 보유 잔고 (소수점 정밀도 필요)             |
+### 🪙 `coin` (코인 정보)
+
+| 컬럼명       | 타입           | 설명                             |
+|--------------|----------------|----------------------------------|
+| `id`         | `bigint`       | 코인 고유 ID (PK)                |
+| `name`       | `varchar(255)` | 코인 이름                         |
+| `symbol`     | `enum`         | 심볼 (`btc`, `eth`)              |
+| `created_at` | `datetime(6)`  | 생성일시                         |
+| `updated_at` | `datetime(6)`  | 수정일시                         |
 
 ---
 
-## ORDER (주문 정보)
+### 💼 `wallet` (원화 지갑)
 
-| 컬럼명        | 타입     | 설명                                                                 |
-|---------------|----------|----------------------------------------------------------------------|
-| id            | LONG     | 주문 고유 ID (PK)                                                    |
-| user_id       | LONG     | 주문을 낸 사용자 ID (FK)                                             |
-| coin_id       | LONG     | 주문 대상 코인 ID (FK)                                               |
-| order_type    | ENUM     | 주문 유형 (`LIMIT`: 지정가, `MARKET`: 시장가)                        |
-| order_side    | ENUM     | 주문 방향 (`BUY`: 매수, `SELL`: 매도)                                |
-| price         | DECIMAL  | 주문 가격 (`MARKET`일 경우 일반적으로 0 또는 NULL 처리)              |
-| amount        | DECIMAL  | 주문 총 수량                                                         |
-| filled_amount | DECIMAL  | 체결된 수량 (부분 체결 시 누적)                                     |
-| status        | ENUM     | 주문 상태 (`PENDING`, `PARTIAL`, `FILLED`, `CANCELLED` 중 하나)      |
+| 컬럼명       | 타입           | 설명                             |
+|--------------|----------------|----------------------------------|
+| `id`         | `bigint`       | 지갑 고유 ID (PK)                |
+| `user_id`    | `bigint`       | 사용자 ID (FK)                   |
+| `currency`   | `enum`         | 화폐 단위 (`krw`)                |
+| `balance`    | `decimal`      | 원화 잔액                        |
+| `created_at` | `datetime(6)`  | 생성일시                         |
+| `updated_at` | `datetime(6)`  | 수정일시                         |
 
 ---
 
-## ORDER_BOOK (호가 정보)
+### 🪙 `coin_wallet` (코인 지갑)
 
-| 컬럼명           | 타입     | 설명                                                               |
-|------------------|----------|--------------------------------------------------------------------|
-| id               | LONG     | 호가 정보 고유 ID (PK)                                             |
-| coin_id          | LONG     | 해당 호가가 속한 코인 ID (FK)                                      |
-| order_side       | ENUM     | 호가 방향 (`BUY`: 매수 호가, `SELL`: 매도 호가)                    |
-| price            | DECIMAL  | 호가 가격                                                           |
-| remaining_amount | DECIMAL  | 해당 가격에 남아 있는 주문 수량                                   |
-| created_at       | DATETIME | 해당 호가가 처음 생성된 시점 (호가 갱신 우선순위 판단 시 사용 가능) |
-
----
-
-## TRADE (체결 정보)
-| 컬럼명     | 타입       | 설명                           |
-|------------|------------|--------------------------------|
-| id         | LONG       | 체결 고유 ID (PK)              |
-| order_id   | LONG       | 체결된 주문 ID (FK)            |
-| coin_id    | LONG       | 거래된 코인 ID (FK)            |
-| price      | DECIMAL    | 체결 가격                      |
-| amount     | DECIMAL    | 체결 수량                      |
+| 컬럼명       | 타입           | 설명                             |
+|--------------|----------------|----------------------------------|
+| `id`         | `bigint`       | 지갑 고유 ID (PK)                |
+| `user_id`    | `bigint`       | 사용자 ID (FK)                   |
+| `coin_id`    | `bigint`       | 코인 ID (FK)                     |
+| `amount`     | `bigint`       | 보유 수량                        |
+| `created_at` | `datetime(6)`  | 생성일시                         |
+| `updated_at` | `datetime(6)`  | 수정일시                         |
 
 ---
 
-## DEPOSIT (입금 요청)
-| 컬럼명     | 타입       | 설명                                        |
-|------------|------------|-------------------------------------------|
-| id         | LONG       | 요청 고유 ID (PK)                             |
-| user_id    | LONG       | 요청 사용자 ID (FK)                            |
-| amount     | DECIMAL    | 요청 입금 금액                                  |
-| status     | ENUM       | 요청 상태 (PENDING, COMPLETED, REJECTED 중 하나) |
+### 💳 `deposit` (입금 요청)
+
+| 컬럼명         | 타입           | 설명                                         |
+|----------------|----------------|----------------------------------------------|
+| `id`           | `bigint`       | 입금 요청 고유 ID (PK)                       |
+| `user_id`      | `bigint`       | 사용자 ID (FK)                               |
+| `account_number` | `varchar(255)` | 입금 계좌번호                                 |
+| `bank`         | `varchar(255)` | 입금 은행 이름                                |
+| `amount`       | `decimal`      | 입금 금액                                    |
+| `status`       | `enum`         | 입금 상태 (`completed`, `pending`, `rejected`) |
+| `reject_reason`| `varchar(255)` | 거절 사유 (선택)                             |
+| `created_at`   | `datetime(6)`  | 생성일시                                     |
+| `updated_at`   | `datetime(6)`  | 수정일시                                     |
 
 ---
 
-## WITHDRAW (출금 요청)
-| 컬럼명     | 타입       | 설명                                         |
-|------------|------------|----------------------------------------------|
-| id         | LONG       | 요청 고유 ID (PK)                            |
-| user_id    | LONG       | 요청 사용자 ID (FK)                          |
-| amount     | DECIMAL    | 요청 출금 금액                               |
-| status     | ENUM       | 요청 상태 (PENDING, COMPLETED, CANCELLED, REJECTED 중 하나)|
+### 💸 `withdraw` (출금 요청)
+
+| 컬럼명           | 타입           | 설명                                                   |
+|------------------|----------------|--------------------------------------------------------|
+| `id`             | `bigint`       | 출금 요청 고유 ID (PK)                                 |
+| `user_id`        | `bigint`       | 사용자 ID (FK)                                         |
+| `account_number` | `varchar(255)` | 출금 계좌번호                                          |
+| `bank`           | `varchar(255)` | 출금 은행 이름                                         |
+| `amount`         | `decimal`      | 출금 금액                                              |
+| `status`         | `enum`         | 출금 상태 (`completed`, `failed`, `pending`, `rejected`) |
+| `failure_reason` | `varchar(255)` | 실패 사유 (선택)                                       |
+| `reject_reason`  | `varchar(255)` | 거절 사유 (선택)                                       |
+| `created_at`     | `datetime(6)`  | 생성일시                                               |
+| `updated_at`     | `datetime(6)`  | 수정일시                                               |
 
 ---
 
-## ADMIN_ACTION_LOG (관리자 작업 로그)
-| 컬럼명        | 타입     | 설명                                                               |
-|---------------|----------|--------------------------------------------------------------------|
-| id            | LONG     | 로그 고유 ID (PK)                                                  |
-| admin_id      | LONG     | 작업을 수행한 관리자 ID (FK)                                       |
-| action_type   | ENUM     | 작업 유형 (COIN_LISTING, COIN_DELISTING, WALLET_ADJUST 중 하나)   |
-| target_user_id| LONG     | 영향을 받은 사용자 ID (FK)                                        |
-| coin_id       | LONG     | 관련된 코인 ID (nullable 가능)                                     |
-| detail        | TEXT     | 작업 상세 내용                                                     |
+### 📈 `order` (주문 정보)
+
+| 컬럼명           | 타입           | 설명                                                   |
+|------------------|----------------|--------------------------------------------------------|
+| `id`             | `bigint`       | 주문 고유 ID (PK)                                      |
+| `user_id`        | `bigint`       | 사용자 ID (FK)                                         |
+| `coin_id`        | `bigint`       | 코인 ID (FK)                                           |
+| `type`           | `enum`         | 주문 방향 (`buy`, `sell`)                              |
+| `price`          | `decimal`      | 주문 가격                                               |
+| `order_amount`   | `bigint`       | 총 주문 수량                                            |
+| `filled_amount`  | `bigint`       | 체결된 수량 (누적)                                     |
+| `locked_funds`   | `decimal`      | 잠금된 자산 (지정가 매수 시 잔고에서 보류)              |
+| `status`         | `enum`         | 주문 상태 (`cancelled`, `failed`, `filled`, `partial`, `pending`) |
+| `failed_reason`  | `varchar(255)` | 실패 사유 (선택)                                       |
+| `created_at`     | `datetime(6)`  | 생성일시                                               |
+| `updated_at`     | `datetime(6)`  | 수정일시                                               |
 
 ---
+
+### 📊 `order_book` (호가 정보)
+
+| 컬럼명            | 타입           | 설명                                               |
+|-------------------|----------------|----------------------------------------------------|
+| `id`              | `bigint`       | 호가 고유 ID (PK)                                  |
+| `order_id`        | `bigint`       | 주문 ID (FK)                                       |
+| `user_id`         | `bigint`       | 사용자 ID (FK)                                     |
+| `coin_id`         | `bigint`       | 코인 ID (FK)                                       |
+| `price`           | `decimal`      | 호가 가격                                           |
+| `remaining_amount`| `bigint`       | 남은 수량 (체결되지 않은 수량)                     |
+| `type`            | `enum`         | 호가 방향 (`buy`, `sell`)                          |
+| `status`          | `enum`         | 상태 (`active`, `completed`)                       |
+| `created_at`      | `datetime(6)`  | 생성일시                                           |
+| `updated_at`      | `datetime(6)`  | 수정일시                                           |
+
+---
+
+### 🔁 `trade` (체결 정보)
+
+| 컬럼명         | 타입           | 설명                                          |
+|----------------|----------------|-----------------------------------------------|
+| `id`           | `bigint`       | 체결 고유 ID (PK)                              |
+| `buy_order_id` | `bigint`       | 매수 주문 ID (FK)                              |
+| `sell_order_id`| `bigint`       | 매도 주문 ID (FK)                              |
+| `coin_id`      | `bigint`       | 체결된 코인 ID (FK)                            |
+| `amount`       | `bigint`       | 체결 수량                                      |
+| `price`        | `decimal`      | 체결 가격                                      |
+| `status`       | `enum`         | 체결 상태 (`success`, `failed`)                |
+| `failed_reason`| `varchar(255)` | 실패 사유 (선택)                               |
+| `created_at`   | `datetime(6)`  | 생성일시                                       |
+| `updated_at`   | `datetime(6)`  | 수정일시                                       |
