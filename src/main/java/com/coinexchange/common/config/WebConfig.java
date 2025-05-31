@@ -1,7 +1,7 @@
 package com.coinexchange.common.config;
 
-import com.coinexchange.auth.JwtTokenProvider;
-import com.coinexchange.auth.resolver.CurrentUserIdArgumentResolver;
+import com.coinexchange.common.auth.JwtTokenProvider;
+import com.coinexchange.common.auth.resolver.CurrentUserIdArgumentResolver;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.web.method.support.HandlerMethodArgumentResolver;

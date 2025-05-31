@@ -1,6 +1,6 @@
 package com.coinexchange.deposit.presentation;
 
-import com.coinexchange.auth.annotation.CurrentUserId;
+import com.coinexchange.common.auth.annotation.CurrentUserId;
 import com.coinexchange.deposit.application.DepositService;
 import com.coinexchange.deposit.presentation.dto.DepositRequest;
 import com.coinexchange.deposit.application.dto.DepositResponse;

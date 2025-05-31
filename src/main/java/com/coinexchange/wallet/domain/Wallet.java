@@ -28,7 +28,7 @@ public class Wallet extends BaseTimeEntity {
     private BigDecimal balance;
 
     public enum Currency {
-        KRW, BTC, ETH
+        KRW
     }
 
     @Builder

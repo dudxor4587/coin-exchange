@@ -1,6 +1,6 @@
 package com.coinexchange.user.application;
 
-import com.coinexchange.auth.JwtTokenProvider;
+import com.coinexchange.common.auth.JwtTokenProvider;
 import com.coinexchange.user.domain.User;
 import com.coinexchange.user.domain.repository.UserRepository;
 import com.coinexchange.user.exception.UserException;

@@ -1,11 +1,13 @@
 package com.coinexchange.wallet.application;
 
-import com.coinexchange.notification.application.NotificationService;
+import com.coinexchange.infra.notification.application.NotificationService;
+import com.coinexchange.order.event.BuyOrderReadyEvent;
 import com.coinexchange.wallet.domain.Wallet;
 import com.coinexchange.wallet.domain.repository.WalletRepository;
 import com.coinexchange.wallet.exception.WalletException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -20,6 +22,7 @@ public class WalletService {
 
     private final WalletRepository walletRepository;
     private final NotificationService notificationService;
+    private final ApplicationEventPublisher eventPublisher;
 
     @Transactional
     public void processDeposit(Long userId, BigDecimal amount) {
@@ -53,7 +56,7 @@ public class WalletService {
     }
 
     @Transactional
-    public void processOrder(Long userId, BigDecimal lockedFunds) {
+    public void processBuyOrder(Long userId, BigDecimal lockedFunds, Long orderId, Long coinId, BigDecimal price, Long amount) {
         Wallet wallet = walletRepository.findByUserIdAndCurrencyForUpdate(userId, Wallet.Currency.KRW)
                 .orElseThrow(() -> new WalletException(WALLET_NOT_FOUND));
 
@@ -61,7 +64,29 @@ public class WalletService {
 
         walletRepository.save(wallet);
 
-        log.info("주문 처리 완료: userId={}, lockedFunds={}", userId, lockedFunds);
-        notificationService.sendOrderNotification(userId, lockedFunds);
+        log.info("매수 주문 처리 완료: userId={}, lockedFunds={}", userId, lockedFunds);
+        notificationService.sendBuyOrderNotification(userId, lockedFunds);
+
+        eventPublisher.publishEvent(new BuyOrderReadyEvent(
+                orderId,
+                userId,
+                coinId,
+                lockedFunds,
+                price,
+                amount
+        ));
+    }
+
+    @Transactional
+    public void processSellOrderFill(Long userId, BigDecimal price) {
+        Wallet wallet = walletRepository.findByUserIdAndCurrencyForUpdate(userId, Wallet.Currency.KRW)
+                .orElseThrow(() -> new WalletException(WALLET_NOT_FOUND));
+
+        wallet.increaseBalance(price);
+
+        walletRepository.save(wallet);
+
+        log.info("매도 주문 체결 완료: userId={}, price={}", userId, price);
+        notificationService.sendSellOrderFillNotification(userId, price);
     }
 }

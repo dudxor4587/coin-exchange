@@ -1,18 +1,30 @@
 package com.coinexchange.order.domain;
 
 import com.coinexchange.common.domain.BaseTimeEntity;
+import com.coinexchange.order.event.BuyOrderCompletedEvent;
+import com.coinexchange.order.event.BuyOrderFilledEvent;
+import com.coinexchange.order.event.SellOrderCompletedEvent;
+import com.coinexchange.order.event.SellOrderFilledEvent;
 import jakarta.persistence.*;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import org.springframework.data.domain.AfterDomainEventPublication;
+import org.springframework.data.domain.DomainEvents;
 
 import java.math.BigDecimal;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 
 @Entity
 @Getter
 @NoArgsConstructor
 @Table(name = "`order`")
 public class Order extends BaseTimeEntity {
+
+    @Transient
+    private final List<Object> domainEvents = new ArrayList<>();
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -70,5 +82,47 @@ public class Order extends BaseTimeEntity {
     public void updateFailedInfo(String reason) {
         this.failedReason = reason;
         this.status = Status.FAILED;
+    }
+
+    public void fill(Long amount) {
+        this.filledAmount += amount;
+        registerFillEvent(amount);
+
+        if (isFilled()) {
+            this.status = Status.FILLED;
+            registerCompletionEvent();
+            return;
+        }
+        this.status = Status.PARTIAL;
+    }
+
+    private void registerFillEvent(Long amount) {
+        if (this.type == Type.BUY) {
+            domainEvents.add(new BuyOrderFilledEvent(this.id, this.userId, this.coinId, amount));
+        } else {
+            domainEvents.add(new SellOrderFilledEvent(this.id, this.userId, this.price.multiply(BigDecimal.valueOf(amount))));
+        }
+    }
+
+    private void registerCompletionEvent() {
+        if (this.type == Type.BUY) {
+            domainEvents.add(new BuyOrderCompletedEvent(this.id, this.userId, this.coinId, this.filledAmount));
+        } else {
+            domainEvents.add(new SellOrderCompletedEvent(this.id, this.userId, this.coinId, this.filledAmount));
+        }
+    }
+
+    private boolean isFilled() {
+        return this.filledAmount.equals(this.orderAmount);
+    }
+
+    @DomainEvents
+    protected List<Object> domainEvents() {
+        return Collections.unmodifiableList(domainEvents);
+    }
+
+    @AfterDomainEventPublication
+    protected void clearDomainEvents() {
+        this.domainEvents.clear();
     }
 }

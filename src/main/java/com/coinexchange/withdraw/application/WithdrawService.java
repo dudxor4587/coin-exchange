@@ -1,6 +1,6 @@
 package com.coinexchange.withdraw.application;
 
-import com.coinexchange.notification.application.NotificationSender;
+import com.coinexchange.infra.notification.application.NotificationSender;
 import com.coinexchange.withdraw.application.dto.WithdrawResponse;
 import com.coinexchange.withdraw.application.mapper.WithdrawMapper;
 import com.coinexchange.withdraw.domain.Withdraw;

@@ -1,6 +1,6 @@
 package com.coinexchange.withdraw.presentation;
 
-import com.coinexchange.auth.annotation.CurrentUserId;
+import com.coinexchange.common.auth.annotation.CurrentUserId;
 import com.coinexchange.withdraw.application.WithdrawService;
 import com.coinexchange.withdraw.application.dto.WithdrawResponse;
 import com.coinexchange.withdraw.presentation.dto.WithdrawRequest;

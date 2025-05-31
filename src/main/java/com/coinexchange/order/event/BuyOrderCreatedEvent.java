@@ -5,6 +5,9 @@ import java.math.BigDecimal;
 public record BuyOrderCreatedEvent(
         Long orderId,
         Long userId,
-        BigDecimal lockedFunds
+        BigDecimal lockedFunds,
+        Long coinId,
+        BigDecimal price,
+        Long amount
 ) {
 }

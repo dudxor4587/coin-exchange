@@ -1,16 +1,16 @@
 package com.coinexchange.wallet.application.listener;
 
-import com.coinexchange.order.event.BuyOrderCreatedEvent;
-import com.coinexchange.order.event.OrderProcessingFailedEvent;
 import com.coinexchange.wallet.application.WalletService;
 import com.coinexchange.wallet.exception.WalletException;
+import com.coinexchange.withdraw.event.WithdrawApprovedEvent;
+import com.coinexchange.withdraw.event.WithdrawFailedEvent;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Component;
 
-import static com.coinexchange.common.config.RabbitMQConfig.ORDER_CREATED_QUEUE;
+import static com.coinexchange.common.config.RabbitMQConfig.WITHDRAW_APPROVE_QUEUE;
 
 @Component
 @RequiredArgsConstructor
@@ -20,16 +20,16 @@ public class WithdrawApprovedEventListener {
     private final WalletService walletService;
     private final ApplicationEventPublisher eventPublisher;
 
-    @RabbitListener(queues = ORDER_CREATED_QUEUE)
-    public void handleOrderCreated(BuyOrderCreatedEvent event) {
-        log.info("주문 생성 이벤트 수신: userId={}, lockedFunds={}", event.userId(), event.lockedFunds());
+    @RabbitListener(queues = WITHDRAW_APPROVE_QUEUE)
+    public void handleWithdrawApproved(WithdrawApprovedEvent event) {
+        log.info("출금 승인 이벤트 수신: userId={}, amount={}", event.userId(), event.amount());
         try {
-            walletService.processOrder(event.userId(), event.lockedFunds());
+            walletService.processWithdraw(event.userId(), event.amount());
         } catch (WalletException e) {
-            log.warn("주문 처리 실패: {}", e.getMessage());
-            eventPublisher.publishEvent(new OrderProcessingFailedEvent(
-                    event.orderId(),
-                    e.getMessage()
+            log.warn("출금 처리 실패: {}", e.getMessage());
+            eventPublisher.publishEvent(new WithdrawFailedEvent(
+                    e.getMessage(),
+                    event.withdrawId()
             ));
         }
     }
