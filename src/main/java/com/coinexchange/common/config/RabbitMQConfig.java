@@ -93,6 +93,16 @@ public class RabbitMQConfig {
     public static final String TRADE_CREATED_EXCHANGE = "trade.created.exchange";
     public static final String TRADE_CREATED_ROUTING_KEY = "trade.created";
 
+    // 체결 실패 후 OrderBook 롤백 큐
+    public static final String ORDER_BOOK_ROLLBACK_QUEUE = "order.book.rollback.queue";
+    public static final String ORDER_BOOK_ROLLBACK_EXCHANGE = "order.book.rollback.exchange";
+    public static final String ORDER_BOOK_ROLLBACK_ROUTING_KEY = "order.book.rollback";
+
+    // 체결 실패 후 Trade 롤백 큐
+    public static final String TRADE_ROLLBACK_QUEUE = "trade.rollback.queue";
+    public static final String TRADE_ROLLBACK_EXCHANGE = "trade.rollback.exchange";
+    public static final String TRADE_ROLLBACK_ROUTING_KEY = "trade.rollback";
+
     // 입금 요청 승인 큐
     @Bean
     public Queue depositQueue() {
@@ -395,6 +405,44 @@ public class RabbitMQConfig {
                 .bind(tradeCreatedQueue)
                 .to(tradeCreatedExchange)
                 .with(TRADE_CREATED_ROUTING_KEY);
+    }
+
+    // OrderBook 롤백 큐
+    @Bean
+    public Queue orderBookRollbackQueue() {
+        return new Queue(ORDER_BOOK_ROLLBACK_QUEUE);
+    }
+
+    @Bean
+    public TopicExchange orderBookRollbackExchange() {
+        return new TopicExchange(ORDER_BOOK_ROLLBACK_EXCHANGE);
+    }
+
+    @Bean
+    public Binding orderBookRollbackBinding(Queue orderBookRollbackQueue, TopicExchange orderBookRollbackExchange) {
+        return BindingBuilder
+                .bind(orderBookRollbackQueue)
+                .to(orderBookRollbackExchange)
+                .with(ORDER_BOOK_ROLLBACK_ROUTING_KEY);
+    }
+
+    // Trade 롤백 큐
+    @Bean
+    public Queue tradeRollbackQueue() {
+        return new Queue(TRADE_ROLLBACK_QUEUE);
+    }
+
+    @Bean
+    public TopicExchange tradeRollbackExchange() {
+        return new TopicExchange(TRADE_ROLLBACK_EXCHANGE);
+    }
+
+    @Bean
+    public Binding tradeRollbackBinding(Queue tradeRollbackQueue, TopicExchange tradeRollbackExchange) {
+        return BindingBuilder
+                .bind(tradeRollbackQueue)
+                .to(tradeRollbackExchange)
+                .with(TRADE_ROLLBACK_ROUTING_KEY);
     }
 
     @Bean

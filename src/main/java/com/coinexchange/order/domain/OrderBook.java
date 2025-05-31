@@ -30,8 +30,15 @@ public class OrderBook extends BaseTimeEntity {
 
     private Long orderId;
 
+    @Enumerated(EnumType.STRING)
+    private Status status;
+
     public enum Type {
         BUY, SELL
+    }
+
+    public enum Status {
+        ACTIVE, COMPLETED
     }
 
     @Builder
@@ -42,10 +49,19 @@ public class OrderBook extends BaseTimeEntity {
         this.remainingAmount = remainingAmount;
         this.userId = userId;
         this.orderId = orderId;
+        this.status = Status.ACTIVE;
     }
 
     public void decreaseAmount(Long filled) {
         this.remainingAmount -= filled;
+    }
+
+    public void increaseAmount(Long filled) {
+        this.remainingAmount += filled;
+    }
+
+    public void complete() {
+        this.status = Status.COMPLETED;
     }
 
     public boolean isEmpty() {

@@ -1,7 +1,6 @@
 package com.coinexchange.order.event;
 
-public record OrderMatchedEvent(
-        Long tradeId,
+public record OrderBookRollbackEvent(
         Long buyOrderId,
         Long sellOrderId,
         Long matchedAmount

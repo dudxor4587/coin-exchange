@@ -24,9 +24,9 @@ public class MatchingEngineService {
     @Transactional
     public void matchOrders() {
         List<OrderBook> buyOrders = orderBookRepository
-                .findByTypeAndRemainingAmountGreaterThanOrderByCreatedAtAsc(OrderBook.Type.BUY, 0L);
+                .findByStatusAndTypeAndRemainingAmountGreaterThanOrderByCreatedAtAsc(OrderBook.Status.ACTIVE, OrderBook.Type.BUY, 0L);
         List<OrderBook> sellOrders = orderBookRepository
-                .findByTypeAndRemainingAmountGreaterThanOrderByCreatedAtAsc(OrderBook.Type.SELL, 0L);
+                .findByStatusAndTypeAndRemainingAmountGreaterThanOrderByCreatedAtAsc(OrderBook.Status.ACTIVE, OrderBook.Type.SELL, 0L);
 
         for (OrderBook buy : buyOrders) {
             for (OrderBook sell : sellOrders) {
@@ -51,12 +51,11 @@ public class MatchingEngineService {
                             buy.getPrice(),
                             matchedAmount
                     ));
-
                     if (buy.isEmpty()) {
-                        orderBookRepository.delete(buy);
+                        buy.complete();
                     }
                     if (sell.isEmpty()) {
-                        orderBookRepository.delete(sell);
+                        sell.complete();
                     }
                 }
             }

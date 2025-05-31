@@ -7,5 +7,5 @@ import java.util.List;
 
 public interface OrderBookRepository extends JpaRepository<OrderBook, Long> {
 
-    List<OrderBook> findByTypeAndRemainingAmountGreaterThanOrderByCreatedAtAsc(OrderBook.Type type, long l);
+    List<OrderBook> findByStatusAndTypeAndRemainingAmountGreaterThanOrderByCreatedAtAsc(OrderBook.Status status, OrderBook.Type type, long l);
 }

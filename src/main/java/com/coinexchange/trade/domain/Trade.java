@@ -27,6 +27,16 @@ public class Trade extends BaseTimeEntity {
 
     private Long amount;
 
+    @Column(nullable = true)
+    private String failedReason; // 주문 실패 사유
+
+    @Enumerated(EnumType.STRING)
+    private Trade.Status status;
+
+    public enum Status {
+        SUCCESS, FAILED
+    }
+
     @Builder
     public Trade(Long buyOrderId, Long sellOrderId, Long coinId, BigDecimal price, Long amount) {
         this.buyOrderId = buyOrderId;
@@ -34,5 +44,11 @@ public class Trade extends BaseTimeEntity {
         this.coinId = coinId;
         this.price = price;
         this.amount = amount;
+        this.status = Status.SUCCESS;
+    }
+
+    public void updateFailedInfo(String reason) {
+        this.failedReason = reason;
+        this.status = Trade.Status.FAILED;
     }
 }
