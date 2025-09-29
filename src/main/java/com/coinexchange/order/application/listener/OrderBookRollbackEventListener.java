@@ -2,6 +2,7 @@ package com.coinexchange.order.application.listener;
 
 import com.coinexchange.order.application.OrderBookService;
 import com.coinexchange.order.event.OrderBookRollbackEvent;
+import com.fasterxml.jackson.core.JsonProcessingException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.amqp.rabbit.annotation.RabbitListener;

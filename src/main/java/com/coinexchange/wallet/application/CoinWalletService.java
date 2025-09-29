@@ -4,7 +4,7 @@ import com.coinexchange.infra.notification.application.NotificationService;
 import com.coinexchange.order.event.SellOrderReadyEvent;
 import com.coinexchange.wallet.domain.CoinWallet;
 import com.coinexchange.wallet.domain.repository.CoinWalletRepository;
-import com.coinexchange.wallet.exception.WalletException;
+import com.coinexchange.wallet.exception.CoinWalletException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.ApplicationEventPublisher;
@@ -13,7 +13,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 
-import static com.coinexchange.wallet.exception.WalletExceptionType.WALLET_NOT_FOUND;
+import static com.coinexchange.wallet.exception.CoinWalletExceptionType.COIN_WALLET_NOT_FOUND;
 
 @Service
 @RequiredArgsConstructor
@@ -27,7 +27,7 @@ public class CoinWalletService {
     @Transactional
     public void processSellOrder(Long userId, Long orderId, Long coinId, BigDecimal price, Long amount) {
         CoinWallet coinWallet = coinWalletRepository.findByUserIdAndCoinIdForUpdate(userId, coinId)
-                .orElseThrow(() -> new WalletException(WALLET_NOT_FOUND));
+                .orElseThrow(() -> new CoinWalletException(COIN_WALLET_NOT_FOUND));
 
         coinWallet.decreaseAmount(amount);
 

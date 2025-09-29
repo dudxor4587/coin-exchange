@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   coin-exchange-mysql:
     image: mysql:8.0
@@ -18,9 +16,37 @@ services:
     image: rabbitmq:3-management
     container_name: coin-exchange-rabbitmq
     ports:
-      - "5672:5672"     # AMQP
-      - "15672:15672"   # RabbitMQ 웹 관리 콘솔
+      - "5673:5672"
+      - "15672:15672"
     environment:
       RABBITMQ_DEFAULT_USER: guest
       RABBITMQ_DEFAULT_PASS: guest
     restart: always
+
+  coin-exchange-prometheus:
+    image: prom/prometheus:latest
+    container_name: coin-exchange-prometheus
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml
+    restart: always
+
+  coin-exchange-grafana:
+    image: grafana/grafana:latest
+    container_name: coin-exchange-grafana
+    ports:
+      - "3000:3000"
+    environment:
+      GF_SECURITY_ADMIN_USER: admin
+      GF_SECURITY_ADMIN_PASSWORD: 1234
+    depends_on:
+      - coin-exchange-prometheus
+    restart: always
+
+  coin-exchange-redis:
+    image: redis:7.2
+    container_name: coin-exchange-redis
+    ports:
+      - "6379:6379"
+    command: redis-server --appendonly yes

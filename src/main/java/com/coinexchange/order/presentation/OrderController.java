@@ -1,6 +1,5 @@
 package com.coinexchange.order.presentation;
 
-import com.coinexchange.common.auth.annotation.CurrentUserId;
 import com.coinexchange.order.application.OrderService;
 import com.coinexchange.order.presentation.dto.BuyOrderRequest;
 import com.coinexchange.order.presentation.dto.SellOrderRequest;
@@ -18,26 +17,47 @@ public class OrderController {
 
     private final OrderService orderService;
 
+//    @PostMapping("/orders/buy")
+//    public ResponseEntity<String> buyLimitOrder(@RequestBody BuyOrderRequest request,
+//                                                @CurrentUserId Long userId) {
+//        orderService.createBuyOrder(
+//                request.coinId(),
+//                request.price(),
+//                request.amount(),
+//                userId
+//        );
+//        return ResponseEntity.ok("주문이 완료되었습니다.");
+//    }
+
     @PostMapping("/orders/buy")
-    public ResponseEntity<String> buyLimitOrder(@RequestBody BuyOrderRequest request,
-                                                @CurrentUserId Long userId) {
+    public ResponseEntity<String> buyLimitOrder(@RequestBody BuyOrderRequest request) {
         orderService.createBuyOrder(
                 request.coinId(),
                 request.price(),
                 request.amount(),
-                userId
+                1L
         );
         return ResponseEntity.ok("주문이 완료되었습니다.");
     }
 
+    //    @PostMapping("/orders/sell")
+//    public ResponseEntity<String> sellLimitOrder(@RequestBody SellOrderRequest request,
+//                                                 @CurrentUserId Long userId) {
+//        orderService.createSellOrder(
+//                request.coinId(),
+//                request.price(),
+//                request.amount(),
+//                userId
+//        );
+//        return ResponseEntity.ok("주문이 완료되었습니다.");
+//    }
     @PostMapping("/orders/sell")
-    public ResponseEntity<String> sellLimitOrder(@RequestBody SellOrderRequest request,
-                                                 @CurrentUserId Long userId) {
+    public ResponseEntity<String> sellLimitOrder(@RequestBody SellOrderRequest request) {
         orderService.createSellOrder(
                 request.coinId(),
                 request.price(),
                 request.amount(),
-                userId
+                2L
         );
         return ResponseEntity.ok("주문이 완료되었습니다.");
     }
