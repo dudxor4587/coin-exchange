@@ -8,13 +8,16 @@ import lombok.NoArgsConstructor;
 
 import java.math.BigDecimal;
 
+@Entity
 @Getter
 @NoArgsConstructor
 public class OrderBook extends BaseTimeEntity {
 
-//    @Id
-//    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Id
     private Long id;
+
+    @Enumerated(EnumType.STRING)
+    private Status status;
 
     private Long coinId;
 
@@ -33,6 +36,10 @@ public class OrderBook extends BaseTimeEntity {
         BUY, SELL
     }
 
+    public enum Status {
+        ACTIVE, COMPLETED
+    }
+
     @Builder
     public OrderBook(Long id, Long coinId, Type type, BigDecimal price, Long remainingAmount, Long userId, Long orderId) {
         this.id = id;
@@ -42,6 +49,7 @@ public class OrderBook extends BaseTimeEntity {
         this.remainingAmount = remainingAmount;
         this.userId = userId;
         this.orderId = orderId;
+        this.status = Status.ACTIVE;
     }
 
     public void decreaseAmount(Long filled) {
@@ -54,5 +62,9 @@ public class OrderBook extends BaseTimeEntity {
 
     public boolean isEmpty() {
         return this.remainingAmount <= 0;
+    }
+
+    public void complete() {
+        this.status = Status.COMPLETED;
     }
 }

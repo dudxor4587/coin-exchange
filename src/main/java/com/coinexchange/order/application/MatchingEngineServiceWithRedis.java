@@ -6,6 +6,7 @@ import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.Timer;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
@@ -17,6 +18,7 @@ import java.util.concurrent.TimeUnit;
 
 @Service
 @Slf4j
+@ConditionalOnProperty(name = "matching.engine", havingValue = "redis", matchIfMissing = true)
 public class MatchingEngineServiceWithRedis {
 
     private final RedisOrderBookRepository redisOrderBookRepository;
