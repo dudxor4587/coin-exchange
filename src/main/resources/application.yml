@@ -45,4 +45,4 @@ jwt:
   expiration: 3600000
 
 matching:
-  engine: db
+  engine: redis

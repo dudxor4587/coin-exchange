@@ -10,7 +10,6 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 import static com.coinexchange.order.exception.OrderBookExceptionType.ORDER_BOOK_NOT_FOUND;
 
@@ -23,7 +22,6 @@ public class RedisOrderBookService implements OrderBookService {
     private final RedisOrderBookRepository redisOrderBookRepository;
 
     @Override
-    @Transactional
     public void processBuyOrder(BuyOrderReadyEvent event) {
         OrderBook orderBook = OrderBook.builder()
                 .id(event.orderId())
@@ -41,7 +39,6 @@ public class RedisOrderBookService implements OrderBookService {
     }
 
     @Override
-    @Transactional
     public void processSellOrder(SellOrderReadyEvent event) {
         OrderBook orderBook = OrderBook.builder()
                 .id(event.orderId())
