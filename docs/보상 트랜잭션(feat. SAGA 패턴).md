@@ -25,7 +25,7 @@ sequenceDiagram
     OrderBookService->>OrderBookService: 매도 주문 등록
     
     %% 주문 매칭
-    MatchingEngine->>OrderBookRepository: 주문 매칭 실행 (5초마다 Polling)
+    MatchingEngine->>OrderBookRepository: 주문 매칭 실행 (0.5초마다 Polling)
     MatchingEngine->>TradeService: 거래 생성 이벤트 발행
     TradeService->>TradeService: 거래 정보 저장
     
@@ -95,7 +95,7 @@ sequenceDiagram
     OrderBookService->>OrderBookService: 매도 주문 등록
 
 %% 주문 매칭 및 거래 생성
-    MatchingEngine->>OrderBookRepository: 주문 매칭 실행 (5초마다 Polling)
+    MatchingEngine->>OrderBookRepository: 주문 매칭 실행 (0.5초마다 Polling)
     MatchingEngine->>TradeService: 거래 생성 이벤트 발행
     TradeService->>TradeService: 거래 정보 저장
 
