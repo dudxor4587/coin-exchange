@@ -1,0 +1,9 @@
+plugins {
+    id 'java-library'
+}
+
+dependencies {
+    implementation project(':events-contract')
+    implementation project(':common-core')
+    implementation 'org.springframework.boot:spring-boot-starter-amqp'
+}

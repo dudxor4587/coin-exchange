@@ -1,1 +1,13 @@
 rootProject.name = 'coinExchange'
+
+include 'app'
+include 'events-contract'
+include 'common-core'
+include 'infra-notification'
+include 'domain-coin'
+include 'domain-user'
+include 'domain-deposit'
+include 'domain-withdraw'
+include 'domain-trade'
+include 'domain-order'
+include 'domain-wallet'

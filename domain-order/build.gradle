@@ -1,0 +1,12 @@
+plugins {
+    id 'java-library'
+}
+
+dependencies {
+    implementation project(':common-core')
+    implementation project(':events-contract')
+    implementation project(':infra-notification')
+    implementation 'org.springframework.boot:spring-boot-starter-amqp'
+    implementation 'org.springframework.boot:spring-boot-starter-data-redis'
+    implementation 'io.micrometer:micrometer-core'
+}
