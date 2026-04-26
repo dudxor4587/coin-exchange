@@ -5,9 +5,12 @@ services:
     ports:
       - "8080:8080"
     depends_on:
-      - coin-exchange-mysql
-      - coin-exchange-redis
-      - coin-exchange-rabbitmq
+      coin-exchange-mysql:
+        condition: service_healthy
+      coin-exchange-redis:
+        condition: service_healthy
+      coin-exchange-rabbitmq:
+        condition: service_healthy
     restart: always
 
   coin-exchange-mysql:
@@ -24,6 +27,12 @@ services:
     command: --default-time-zone='+09:00'
     cpus: 0.3
     mem_limit: 512m
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-uroot", "-p1234"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+      start_period: 10s
 
   coin-exchange-rabbitmq:
     image: rabbitmq:3-management
@@ -35,6 +44,12 @@ services:
       RABBITMQ_DEFAULT_USER: guest
       RABBITMQ_DEFAULT_PASS: guest
     restart: always
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 10s
 
   coin-exchange-prometheus:
     image: prom/prometheus:latest
@@ -53,6 +68,9 @@ services:
     environment:
       GF_SECURITY_ADMIN_USER: admin
       GF_SECURITY_ADMIN_PASSWORD: 1234
+    volumes:
+      - ./grafana/provisioning:/etc/grafana/provisioning
+      - ./grafana/dashboards:/var/lib/grafana/dashboards
     depends_on:
       - coin-exchange-prometheus
     restart: always
@@ -65,3 +83,9 @@ services:
     command: redis-server --appendonly yes
     cpus: 0.3
     mem_limit: 512m
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+      start_period: 5s

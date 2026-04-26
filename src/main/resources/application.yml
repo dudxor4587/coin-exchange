@@ -35,6 +35,10 @@ management:
   metrics:
     tags:
       application: coin-exchange
+    distribution:
+      percentiles-histogram:
+        http.server.requests: true
+        trade_latency_seconds: true
 
 jwt:
   secret: dev-secret-change-me-this-must-be-long-enough-for-hs256-algorithm
