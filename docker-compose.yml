@@ -13,6 +13,18 @@ services:
         condition: service_healthy
     restart: always
 
+  coin-exchange-notification:
+    build:
+      context: .
+      dockerfile: Dockerfile.notification
+    container_name: coin-exchange-notification
+    ports:
+      - "8081:8081"
+    depends_on:
+      coin-exchange-rabbitmq:
+        condition: service_healthy
+    restart: always
+
   coin-exchange-mysql:
     image: mysql:8.0
     container_name: coin-exchange-mysql

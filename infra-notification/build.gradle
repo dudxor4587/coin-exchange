@@ -1,9 +1,10 @@
 plugins {
-    id 'java-library'
+    id 'org.springframework.boot'
 }
 
 dependencies {
     implementation project(':events-contract')
     implementation project(':common-core')
     implementation 'org.springframework.boot:spring-boot-starter-amqp'
+    implementation 'org.springframework.boot:spring-boot-starter-actuator'
 }
