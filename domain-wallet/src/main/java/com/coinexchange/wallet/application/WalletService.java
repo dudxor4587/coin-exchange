@@ -1,6 +1,6 @@
 package com.coinexchange.wallet.application;
 
-import com.coinexchange.infra.notification.application.NotificationService;
+import com.coinexchange.events.notification.NotificationRequestedEvent;
 import com.coinexchange.events.order.BuyOrderReadyEvent;
 import com.coinexchange.wallet.domain.Wallet;
 import com.coinexchange.wallet.domain.repository.WalletRepository;
@@ -21,7 +21,6 @@ import static com.coinexchange.wallet.exception.WalletExceptionType.WALLET_NOT_F
 public class WalletService {
 
     private final WalletRepository walletRepository;
-    private final NotificationService notificationService;
     private final ApplicationEventPublisher eventPublisher;
 
     @Transactional
@@ -36,7 +35,10 @@ public class WalletService {
         walletRepository.save(wallet);
 
         walletLogger(userId, amount);
-        notificationService.sendDepositNotification(userId, amount);
+        eventPublisher.publishEvent(new NotificationRequestedEvent(
+                userId,
+                "거래소에 요청하신 입금 처리가 완료되었습니다. 입금액: " + amount
+        ));
     }
 
     @Transactional
@@ -48,7 +50,10 @@ public class WalletService {
         walletRepository.save(wallet);
 
         walletLogger(userId, amount);
-        notificationService.sendWithdrawNotification(userId, amount);
+        eventPublisher.publishEvent(new NotificationRequestedEvent(
+                userId,
+                "거래소에 요청하신 출금 처리가 완료되었습니다. 출금액: " + amount
+        ));
     }
 
     private void walletLogger(Long userId, BigDecimal amount) {
@@ -65,7 +70,10 @@ public class WalletService {
         walletRepository.save(wallet);
 
         log.info("매수 주문 처리 완료: userId={}, lockedFunds={}", userId, lockedFunds);
-        notificationService.sendBuyOrderNotification(userId, lockedFunds);
+        eventPublisher.publishEvent(new NotificationRequestedEvent(
+                userId,
+                "거래소에 요청하신 매수 주문이 완료되었습니다. 주문 금액: " + lockedFunds
+        ));
 
         eventPublisher.publishEvent(new BuyOrderReadyEvent(
                 orderId,
@@ -87,6 +95,9 @@ public class WalletService {
         walletRepository.save(wallet);
 
         log.info("매도 주문 체결 완료: userId={}, price={}", userId, price);
-        notificationService.sendSellOrderFillNotification(userId, price);
+        eventPublisher.publishEvent(new NotificationRequestedEvent(
+                userId,
+                String.format("매도 주문 체결 완료: 사용자 ID: %d, 체결 금액: %s", userId, price)
+        ));
     }
 }

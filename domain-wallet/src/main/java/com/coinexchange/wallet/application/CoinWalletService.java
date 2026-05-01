@@ -1,6 +1,6 @@
 package com.coinexchange.wallet.application;
 
-import com.coinexchange.infra.notification.application.NotificationService;
+import com.coinexchange.events.notification.NotificationRequestedEvent;
 import com.coinexchange.events.order.SellOrderReadyEvent;
 import com.coinexchange.wallet.domain.CoinWallet;
 import com.coinexchange.wallet.domain.repository.CoinWalletRepository;
@@ -21,7 +21,6 @@ import static com.coinexchange.wallet.exception.CoinWalletExceptionType.COIN_WAL
 public class CoinWalletService {
 
     private final CoinWalletRepository coinWalletRepository;
-    private final NotificationService notificationService;
     private final ApplicationEventPublisher eventPublisher;
 
     @Transactional
@@ -34,7 +33,10 @@ public class CoinWalletService {
         coinWalletRepository.save(coinWallet);
 
         log.info("매도 주문 처리 완료: userId={}, coinId={}, amount={}", userId, coinId, amount);
-        notificationService.sendSellOrderNotification(userId, amount);
+        eventPublisher.publishEvent(new NotificationRequestedEvent(
+                userId,
+                "거래소에 요청하신 매도 주문이 완료되었습니다. 주문 수량: " + amount
+        ));
 
         eventPublisher.publishEvent(new SellOrderReadyEvent(
                 orderId,
@@ -48,13 +50,19 @@ public class CoinWalletService {
     @Transactional
     public void processBuyOrderCompletion(Long userId, Long coinId, Long amount) {
         log.info("매수 주문 완료 처리: userId={}, coinId={}, amount={}", userId, coinId, amount);
-        notificationService.sendBuyOrderCompletionNotification(userId, coinId, amount);
+        eventPublisher.publishEvent(new NotificationRequestedEvent(
+                userId,
+                String.format("매수 주문 완료: 사용자 ID: %d, 대상 코인 ID : %d, 주문 수량: %d", userId, coinId, amount)
+        ));
     }
 
     @Transactional
     public void processSellOrderCompletion(Long userId, Long coinId, Long amount) {
         log.info("매도 주문 완료 처리: userId={}, coinId={}, amount={}", userId, coinId, amount);
-        notificationService.sendSellOrderCompletionNotification(userId, coinId, amount);
+        eventPublisher.publishEvent(new NotificationRequestedEvent(
+                userId,
+                String.format("매도 주문 완료: 사용자 ID: %d, 대상 코인 ID : %d, 주문 수량: %d", userId, coinId, amount)
+        ));
     }
 
     @Transactional
@@ -71,6 +79,9 @@ public class CoinWalletService {
         coinWalletRepository.save(coinWallet);
 
         log.info("매수 주문 체결 완료: userId={}, coinId={}, amount={}", userId, coinId, amount);
-        notificationService.sendBuyOrderFillNotification(userId, coinId, amount);
+        eventPublisher.publishEvent(new NotificationRequestedEvent(
+                userId,
+                String.format("매수 주문 체결 완료: 사용자 ID: %d, 대상 코인 ID : %d, 체결 수량: %d", userId, coinId, amount)
+        ));
     }
 }

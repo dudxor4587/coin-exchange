@@ -339,6 +339,24 @@ public class RabbitMQConfig {
     }
 
     @Bean
+    public Queue notificationRequestedQueue() {
+        return new Queue(NOTIFICATION_REQUESTED_QUEUE);
+    }
+
+    @Bean
+    public TopicExchange notificationRequestedExchange() {
+        return new TopicExchange(NOTIFICATION_REQUESTED_EXCHANGE);
+    }
+
+    @Bean
+    public Binding notificationRequestedBinding(Queue notificationRequestedQueue, TopicExchange notificationRequestedExchange) {
+        return BindingBuilder
+                .bind(notificationRequestedQueue)
+                .to(notificationRequestedExchange)
+                .with(NOTIFICATION_REQUESTED_ROUTING_KEY);
+    }
+
+    @Bean
     MessageConverter messageConverter() {
         return new Jackson2JsonMessageConverter();
     }

@@ -76,4 +76,8 @@ public final class RabbitMQChannels {
     public static final String TRADE_ROLLBACK_QUEUE = "trade.rollback.queue";
     public static final String TRADE_ROLLBACK_EXCHANGE = "trade.rollback.exchange";
     public static final String TRADE_ROLLBACK_ROUTING_KEY = "trade.rollback";
+
+    public static final String NOTIFICATION_REQUESTED_QUEUE = "notification.requested.queue";
+    public static final String NOTIFICATION_REQUESTED_EXCHANGE = "notification.requested.exchange";
+    public static final String NOTIFICATION_REQUESTED_ROUTING_KEY = "notification.requested";
 }

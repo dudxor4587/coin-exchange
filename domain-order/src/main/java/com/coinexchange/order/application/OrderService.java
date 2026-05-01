@@ -1,6 +1,6 @@
 package com.coinexchange.order.application;
 
-import com.coinexchange.infra.notification.application.NotificationService;
+import com.coinexchange.events.notification.NotificationRequestedEvent;
 import com.coinexchange.order.domain.Order;
 import com.coinexchange.order.domain.repository.OrderRepository;
 import com.coinexchange.events.order.*;
@@ -23,7 +23,6 @@ public class OrderService {
 
     private final OrderRepository orderRepository;
     private final ApplicationEventPublisher eventPublisher;
-    private final NotificationService notificationService;
 
     @Transactional
     public void createBuyOrder(Long coinId,
@@ -61,10 +60,10 @@ public class OrderService {
         order.updateFailedInfo(reason);
         orderRepository.save(order);
 
-        notificationService.sendOrderFailureNotification(
+        eventPublisher.publishEvent(new NotificationRequestedEvent(
                 order.getUserId(),
-                reason
-        );
+                "거래소에 요청하신 주문이 실패하였습니다. 사유: " + reason
+        ));
     }
 
     @Transactional
@@ -80,13 +79,16 @@ public class OrderService {
         orderRepository.save(buyOrder);
         orderRepository.save(sellOrder);
 
-        notificationService.sendOrderMatchNotification(
+        eventPublisher.publishEvent(new NotificationRequestedEvent(
                 buyOrder.getUserId(),
+                String.format("매수 완료: 매수자 ID: %d, 매칭 금액: %d, 코인 ID: %d, 가격: %s",
+                        buyOrder.getUserId(), event.matchedAmount(), buyOrder.getCoinId(), buyOrder.getPrice())
+        ));
+        eventPublisher.publishEvent(new NotificationRequestedEvent(
                 sellOrder.getUserId(),
-                event.matchedAmount(),
-                buyOrder.getCoinId(),
-                buyOrder.getPrice()
-        );
+                String.format("매칭 완료: 매도자 ID: %d, 매칭 금액: %d, 코인 ID: %d, 가격: %s",
+                        sellOrder.getUserId(), event.matchedAmount(), buyOrder.getCoinId(), buyOrder.getPrice())
+        ));
     }
 
     @Transactional
