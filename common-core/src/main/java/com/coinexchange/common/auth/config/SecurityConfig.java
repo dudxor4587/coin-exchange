@@ -31,8 +31,8 @@ public class SecurityConfig {
     private final JwtAccessDeniedHandler jwtAccessDeniedHandler;
 
     private static final String[] PERMIT_URL_ARRAY = {
-            "/api/user/login",
-            "/api/user/sign-up",
+            "/api/users/login",
+            "/api/users/sign-up",
     };
 
     @Bean

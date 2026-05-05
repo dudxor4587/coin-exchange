@@ -57,7 +57,7 @@ public class FundsSeeder implements CommandLineRunner {
         for (int attempt = 1; attempt <= LOOKUP_MAX_ATTEMPTS; attempt++) {
             try {
                 UserLookupResponse response = client.get()
-                        .uri("/api/users/by-email/{email}", email)
+                        .uri("/internal/users/by-email/{email}", email)
                         .retrieve()
                         .body(UserLookupResponse.class);
                 if (response != null && response.id() != null) {

@@ -7,7 +7,7 @@ spring:
         - id: user-service
           uri: http://coin-exchange-user:8082
           predicates:
-            - Path=/api/user/**,/api/users/**
+            - Path=/api/users/**
         - id: trading-service
           uri: http://coin-exchange-trading:8084
           predicates:

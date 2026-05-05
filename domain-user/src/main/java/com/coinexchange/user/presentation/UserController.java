@@ -1,7 +1,6 @@
 package com.coinexchange.user.presentation;
 
 import com.coinexchange.user.application.UserService;
-import com.coinexchange.user.application.dto.UserLookupResponse;
 import com.coinexchange.user.presentation.dto.LoginRequest;
 import com.coinexchange.user.presentation.dto.SignUpRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -10,22 +9,16 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
-
 @RestController
-@RequestMapping("/api")
+@RequestMapping("/api/users")
 @RequiredArgsConstructor
 public class UserController {
 
     private final UserService userService;
 
-    @GetMapping("/users/by-email/{email}")
-    public ResponseEntity<UserLookupResponse> findByEmail(@PathVariable String email) {
-        return ResponseEntity.ok(userService.findByEmail(email));
-    }
-
-    @PostMapping("/user/login")
+    @PostMapping("/login")
     public ResponseEntity<String> login(@RequestBody LoginRequest loginRequest,
-                                                     HttpServletResponse response) {
+                                        HttpServletResponse response) {
         String accessToken = userService.login(
                 loginRequest.email(),
                 loginRequest.password()
@@ -36,7 +29,7 @@ public class UserController {
         return ResponseEntity.ok("로그인에 성공하였습니다.");
     }
 
-    @PostMapping("/user/sign-up")
+    @PostMapping("/sign-up")
     public ResponseEntity<String> signUp(@RequestBody SignUpRequest signUpRequest) {
         userService.signUp(
                 signUpRequest.email(),
@@ -47,7 +40,7 @@ public class UserController {
         return ResponseEntity.ok("회원가입에 성공하였습니다.");
     }
 
-    @PostMapping("/user/logout")
+    @PostMapping("/logout")
     public ResponseEntity<String> logout(HttpServletResponse response) {
         userService.logout(response);
 
