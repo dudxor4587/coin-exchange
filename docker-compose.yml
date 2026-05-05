@@ -5,9 +5,7 @@ services:
     ports:
       - "8080:8080"
     depends_on:
-      coin-exchange-mysql:
-        condition: service_healthy
-      coin-exchange-redis:
+      coin-exchange-main-db:
         condition: service_healthy
       coin-exchange-rabbitmq:
         condition: service_healthy
@@ -25,7 +23,7 @@ services:
     ports:
       - "8083:8083"
     depends_on:
-      coin-exchange-mysql:
+      coin-exchange-funds-db:
         condition: service_healthy
       coin-exchange-rabbitmq:
         condition: service_healthy
@@ -47,7 +45,7 @@ services:
     ports:
       - "8084:8084"
     depends_on:
-      coin-exchange-mysql:
+      coin-exchange-trading-db:
         condition: service_healthy
       coin-exchange-redis:
         condition: service_healthy
@@ -71,7 +69,7 @@ services:
     ports:
       - "8082:8082"
     depends_on:
-      coin-exchange-mysql:
+      coin-exchange-user-db:
         condition: service_healthy
     restart: always
     healthcheck:
@@ -93,14 +91,77 @@ services:
         condition: service_healthy
     restart: always
 
-  coin-exchange-mysql:
+  coin-exchange-main-db:
     image: mysql:8.0
-    container_name: coin-exchange-mysql
+    container_name: coin-exchange-main-db
     ports:
       - "3302:3306"
     environment:
       MYSQL_ROOT_PASSWORD: 1234
-      MYSQL_DATABASE: coinExchange
+      MYSQL_DATABASE: main_db
+      MYSQL_TIMEZONE: Asia/Seoul
+      LANG: ko_KR.UTF-8
+    restart: always
+    command: --default-time-zone='+09:00'
+    cpus: 0.3
+    mem_limit: 512m
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-uroot", "-p1234"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+      start_period: 10s
+
+  coin-exchange-user-db:
+    image: mysql:8.0
+    container_name: coin-exchange-user-db
+    ports:
+      - "3303:3306"
+    environment:
+      MYSQL_ROOT_PASSWORD: 1234
+      MYSQL_DATABASE: user_db
+      MYSQL_TIMEZONE: Asia/Seoul
+      LANG: ko_KR.UTF-8
+    restart: always
+    command: --default-time-zone='+09:00'
+    cpus: 0.3
+    mem_limit: 512m
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-uroot", "-p1234"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+      start_period: 10s
+
+  coin-exchange-funds-db:
+    image: mysql:8.0
+    container_name: coin-exchange-funds-db
+    ports:
+      - "3304:3306"
+    environment:
+      MYSQL_ROOT_PASSWORD: 1234
+      MYSQL_DATABASE: funds_db
+      MYSQL_TIMEZONE: Asia/Seoul
+      LANG: ko_KR.UTF-8
+    restart: always
+    command: --default-time-zone='+09:00'
+    cpus: 0.3
+    mem_limit: 512m
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-uroot", "-p1234"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+      start_period: 10s
+
+  coin-exchange-trading-db:
+    image: mysql:8.0
+    container_name: coin-exchange-trading-db
+    ports:
+      - "3305:3306"
+    environment:
+      MYSQL_ROOT_PASSWORD: 1234
+      MYSQL_DATABASE: trading_db
       MYSQL_TIMEZONE: Asia/Seoul
       LANG: ko_KR.UTF-8
     restart: always
