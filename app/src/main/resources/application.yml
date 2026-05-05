@@ -46,3 +46,7 @@ jwt:
 
 matching:
   engine: redis
+
+services:
+  user:
+    base-url: http://coin-exchange-user:8082

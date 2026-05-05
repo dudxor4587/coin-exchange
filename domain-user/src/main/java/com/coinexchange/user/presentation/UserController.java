@@ -1,6 +1,7 @@
 package com.coinexchange.user.presentation;
 
 import com.coinexchange.user.application.UserService;
+import com.coinexchange.user.application.dto.UserLookupResponse;
 import com.coinexchange.user.presentation.dto.LoginRequest;
 import com.coinexchange.user.presentation.dto.SignUpRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -16,6 +17,11 @@ import org.springframework.web.bind.annotation.*;
 public class UserController {
 
     private final UserService userService;
+
+    @GetMapping("/users/by-email/{email}")
+    public ResponseEntity<UserLookupResponse> findByEmail(@PathVariable String email) {
+        return ResponseEntity.ok(userService.findByEmail(email));
+    }
 
     @PostMapping("/user/login")
     public ResponseEntity<String> login(@RequestBody LoginRequest loginRequest,

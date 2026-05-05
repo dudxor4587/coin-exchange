@@ -1,6 +1,8 @@
 package com.coinexchange.user.application;
 
 import com.coinexchange.common.auth.JwtTokenProvider;
+import com.coinexchange.user.application.dto.UserLookupResponse;
+import com.coinexchange.user.application.mapper.UserMapper;
 import com.coinexchange.user.domain.User;
 import com.coinexchange.user.domain.repository.UserRepository;
 import com.coinexchange.user.exception.UserException;
@@ -27,6 +29,12 @@ public class UserService {
         user.isMatchPassword(password, passwordEncoder);
 
         return jwtTokenProvider.createToken(user.getId(), user.getRole().name());
+    }
+
+    public UserLookupResponse findByEmail(String email) {
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new UserException(USER_NOT_FOUND));
+        return UserMapper.toLookupResponse(user);
     }
 
     public void signUp(String email, String password, String name, String phoneNumber) {
