@@ -1,17 +1,17 @@
 services:
-  coin-exchange-was:
-    build: .
-    container_name: coin-exchange-was
+  coin-exchange-gateway:
+    build:
+      context: .
+      dockerfile: Dockerfile.gateway
+    container_name: coin-exchange-gateway
     ports:
       - "8080:8080"
     depends_on:
-      coin-exchange-main-db:
-        condition: service_healthy
-      coin-exchange-rabbitmq:
-        condition: service_healthy
       coin-exchange-user:
         condition: service_healthy
       coin-exchange-funds:
+        condition: service_healthy
+      coin-exchange-trading:
         condition: service_healthy
     restart: always
 
@@ -90,27 +90,6 @@ services:
       coin-exchange-rabbitmq:
         condition: service_healthy
     restart: always
-
-  coin-exchange-main-db:
-    image: mysql:8.0
-    container_name: coin-exchange-main-db
-    ports:
-      - "3302:3306"
-    environment:
-      MYSQL_ROOT_PASSWORD: 1234
-      MYSQL_DATABASE: main_db
-      MYSQL_TIMEZONE: Asia/Seoul
-      LANG: ko_KR.UTF-8
-    restart: always
-    command: --default-time-zone='+09:00'
-    cpus: 0.3
-    mem_limit: 512m
-    healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-uroot", "-p1234"]
-      interval: 5s
-      timeout: 3s
-      retries: 20
-      start_period: 10s
 
   coin-exchange-user-db:
     image: mysql:8.0

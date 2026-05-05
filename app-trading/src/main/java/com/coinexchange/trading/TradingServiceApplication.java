@@ -10,16 +10,19 @@ import org.springframework.scheduling.annotation.EnableScheduling;
         "com.coinexchange.trading",
         "com.coinexchange.order",
         "com.coinexchange.trade",
+        "com.coinexchange.coin",
         "com.coinexchange.common"
 })
 @EntityScan(basePackages = {
         "com.coinexchange.order.domain",
         "com.coinexchange.trade.domain",
+        "com.coinexchange.coin.domain",
         "com.coinexchange.common.domain"
 })
 @EnableJpaRepositories(basePackages = {
         "com.coinexchange.order.domain.repository",
-        "com.coinexchange.trade.domain.repository"
+        "com.coinexchange.trade.domain.repository",
+        "com.coinexchange.coin.domain.repository"
 })
 @EnableScheduling
 public class TradingServiceApplication {

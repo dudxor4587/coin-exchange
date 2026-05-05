@@ -1,4 +1,4 @@
-package com.coinexchange.common.seed;
+package com.coinexchange.trading.seed;
 
 import com.coinexchange.coin.domain.Coin;
 import com.coinexchange.coin.domain.repository.CoinRepository;
@@ -13,7 +13,7 @@ import org.springframework.transaction.annotation.Transactional;
 @Profile("test")
 @RequiredArgsConstructor
 @Slf4j
-public class LoadTestSeeder implements CommandLineRunner {
+public class CoinSeeder implements CommandLineRunner {
 
     private final CoinRepository coinRepository;
 

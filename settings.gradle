@@ -1,8 +1,8 @@
 rootProject.name = 'coinExchange'
 
-include 'app'
 include 'app-funds'
 include 'app-trading'
+include 'gateway'
 include 'events-contract'
 include 'common-core'
 include 'infra-notification'

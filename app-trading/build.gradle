@@ -5,6 +5,7 @@ plugins {
 dependencies {
     implementation project(':events-contract')
     implementation project(':common-core')
+    implementation project(':domain-coin')
     implementation project(':domain-order')
     implementation project(':domain-trade')
 
