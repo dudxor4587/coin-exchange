@@ -20,8 +20,8 @@ services:
       context: .
       dockerfile: Dockerfile.funds
     container_name: coin-exchange-funds
-    ports:
-      - "8083:8083"
+    expose:
+      - "8083"
     depends_on:
       coin-exchange-funds-db:
         condition: service_healthy
@@ -42,8 +42,8 @@ services:
       context: .
       dockerfile: Dockerfile.trading
     container_name: coin-exchange-trading
-    ports:
-      - "8084:8084"
+    expose:
+      - "8084"
     depends_on:
       coin-exchange-trading-db:
         condition: service_healthy
@@ -66,8 +66,8 @@ services:
       context: .
       dockerfile: Dockerfile.user
     container_name: coin-exchange-user
-    ports:
-      - "8082:8082"
+    expose:
+      - "8082"
     depends_on:
       coin-exchange-user-db:
         condition: service_healthy
@@ -84,8 +84,8 @@ services:
       context: .
       dockerfile: Dockerfile.notification
     container_name: coin-exchange-notification
-    ports:
-      - "8081:8081"
+    expose:
+      - "8081"
     depends_on:
       coin-exchange-rabbitmq:
         condition: service_healthy

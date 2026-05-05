@@ -25,3 +25,6 @@ management:
     web:
       exposure:
         include: health,info,gateway
+
+jwt:
+  secret: dev-secret-change-me-this-must-be-long-enough-for-hs256-algorithm

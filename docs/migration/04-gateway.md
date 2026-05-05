@@ -72,29 +72,66 @@ DB 인스턴스도 4개에서 3개로 줄었다 (user-db / funds-db / trading-db
 - 4단계가 정리하기 자연스러운 시점이었던 이유: 운영 형태가 굳어지는 단계라 *빈 컨테이너의 잔존 가치*가 0에 수렴
 - coin이 미래에 자체 도메인 가치를 갖게 되면 (admin 엔드포인트, 가격 피드, 신규 등록) 그땐 trading에서 다시 떼어내면 됨 — 모듈 구조는 그대로 유지되어 있으니까
 
-## 인증 처리는 어떻게 했는가
+## API 경로 정리
 
-이 챕터의 원래 계획에는 *서비스간 인증/권한 정리*도 포함되어 있었다.
-하지만 현재 구조를 보면:
+이 챕터를 거치며 그동안 어긋나 있던 API 경로 컨벤션도 손봤다.
 
-- 테스트 프로파일(K6 부하 측정 환경)은 `TestSecurityConfig.permitAll()`로 인증을 비활성화 — gateway에서 별도 검증 없이 forward해도 정상 동작
-- 운영 프로파일은 각 서비스가 같은 JWT secret으로 자체 검증 (cookie의 accessToken)
+```
+변경 전:                              변경 후:
+POST /api/user/login                 POST /api/users/login
+POST /api/user/sign-up               POST /api/users/sign-up
+POST /api/user/logout                POST /api/users/logout
+GET  /api/users/by-email/{email}     GET  /internal/users/by-email/{email}
+```
 
-즉 *현재 상태*에서 gateway는 라우팅만 하면 되고, 토큰 검증은 downstream 서비스가 알아서 한다. JWT cookie는 gateway가 그대로 forward하고, downstream의 `JwtAuthenticationFilter`가 검증.
+RESTful 컨벤션상 리소스 경로는 *복수형*이 표준인데, 그동안 단수/복수가 뒤섞여 있었다.
+`by-email` 조회는 *funds-service 시더에서 사용자 ID를 받아오는 내부 전용*이라 외부에 노출하면 enumeration 공격 표면이 생긴다. `/internal/**` prefix로 분리해서 *gateway 라우팅에서 제외* — 외부 진입점에선 라우팅 자체가 없으니 404로 떨어지고, docker 내부망에서 funds-service가 user-service를 직접 부를 때만 동작.
 
-이 구조의 한계는 분명하다:
-- gateway에서 한 번 검증하면 downstream이 다시 검증할 필요 없는데, 지금은 *각 서비스가 매 요청마다 JWT를 다시 푼다*
-- 서비스간 호출(funds → user의 lookup API)에는 인증이 없음 — 내부 네트워크 신뢰 가정
+`/internal/**` 같은 prefix는 업계 표준 컨벤션은 아니다. 큰 회사들은 보통 NetworkPolicy나 service mesh의 mTLS로 path와 무관하게 차단한다. 다만 우리 셋업처럼 *gateway 라우팅 규칙으로 외부 진입을 제어*하는 단계에서는 path-based 분리가 가장 *명시적이고 리뷰 가능*해 작은 팀에 잘 맞는다.
 
-이걸 *제대로* 하려면 gateway에서 토큰 검증 후 user-id를 헤더로 전달, downstream은 헤더만 신뢰하는 구조가 맞고, 서비스간 호출은 service token이나 mTLS로 보호해야 한다.
-다만 이건 *진짜 운영 환경 수준의 마무리*이고, 이번 단계에서는 **단일 진입점이라는 형태부터 갖추는 것**까지만 담았다. 인증 강화는 6~7단계의 운영 이슈와 함께 정리하는 게 맞다고 봤다.
+## 인증 정상 도입
+
+원래 이 챕터에서는 *gateway 형태만* 갖추고 인증 강화는 뒤로 미루려 했다.
+하지만 정리 도중 *지금이 정상 도입할 시점*이라는 결론이 났다 — 그동안 K6 부하 측정에서 인증을 우회한 건 토큰 발급 셋업이 귀찮아서였고, 그 임시 조치를 더 끌면 *분리의 형식*이 갖춰졌는데 *진입점에서의 검증*은 모래 위에 지은 셈이 된다.
+
+진짜 표준 패턴으로 갔다.
+
+```
+[클라이언트]
+    ↓ JWT cookie
+[gateway: JWT 검증, X-User-Id/X-User-Role 헤더 주입]
+    ↓ (헤더만)
+[downstream: 헤더 신뢰, JWT 검증 안 함]
+```
+
+작업 단위:
+- `TestSecurityConfig` 제거 — *모든 환경*에서 production SecurityConfig 사용
+- `UserSeeder`가 비밀번호를 BCrypt로 인코딩 (NoOp이 사라졌으니까)
+- `HeaderAuthenticationFilter` 신규 — `X-User-Id`/`X-User-Role` 헤더 읽어 SecurityContext 설정. *downstream에서 JWT 검증 안 함*
+- `JwtAuthenticationFilter` 제거 — cookie의 JWT를 downstream에서 검증하던 코드는 dead code가 됨
+- gateway의 `JwtAuthenticationFilter` (Spring Cloud Gateway의 `GlobalFilter`) 신규 — JWT 검증 후 헤더 주입. login/sign-up은 bypass
+- docker-compose에서 user/funds/trading의 호스트 포트 노출 제거 (`ports` → `expose`로) — *외부에서 8082/8083/8084로 직접 호출 불가*
+- K6 시나리오에 `setup()` 추가 — buyer/seller 로그인 후 cookie 획득, 본 시나리오에서 cookie 첨부
+
+trust boundary가 의미를 가진다 — gateway가 외부 진입점이고, downstream은 *내부망에 있다는 가정으로 헤더를 신뢰*. 이 가정이 깨지지 않도록 호스트 포트도 같이 막았다 (외부에서 docker 내부망으로 직접 들어올 길이 없음).
+
+## 서비스간 인증은 미룸
+
+`funds-service → user-service`의 내부 API 호출(`/internal/users/by-email/...`)에는 인증이 없다. *내부 네트워크 신뢰 가정*에 기대고 있다.
+
+이건 zero-trust 아키텍처가 아닐 때 흔한 선택이고, 작은 팀/조직에선 충분히 합리적. 만약 service-to-service에도 인증이 필요해지면 service token이나 mTLS를 별도 도입하면 된다 (운영 단계 이슈로 6~7단계와 같이 정리할 자리).
 
 ## 검증
 
-K6 시나리오: **32,652 요청 / 0 에러, p95 610ms**.
-gateway 한 단계가 끼었지만 응답 시간 차이는 미미.
+K6 시나리오: **36,468 요청 / 0 에러, p95 494ms** (인증 도입 후 재측정).
+인증 흐름을 K6 setup에서 정상적으로 거쳐도 응답 시간은 이전과 비슷 — 토큰 검증 비용이 무시할 만한 수준.
 
-`/api/orders/buy` 요청이 `localhost:8080` → gateway → trading-service(8084) 순으로 라우팅되어 정상 처리. trading-db에 coin/order/trade가 같이 들어가 있고, main-db 컨테이너는 더 이상 존재하지 않음.
+부수 검증:
+- 토큰 없이 `/api/orders/buy` 호출 → **HTTP 401** (gateway에서 차단)
+- `localhost:8082/8083/8084`로 직접 호출 → **Connection Refused** (호스트 포트 미노출)
+- 정상 토큰으로 호출 → **HTTP 200**
+
+gateway가 진짜 trust boundary로 동작한다는 게 확인됐다.
 
 ## 마무리
 
