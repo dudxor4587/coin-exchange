@@ -84,4 +84,26 @@ public class CoinWalletService {
                 String.format("매수 주문 체결 완료: 사용자 ID: %d, 대상 코인 ID : %d, 체결 수량: %d", userId, coinId, amount)
         ));
     }
+
+    @Transactional
+    public void debitCoin(Long userId, Long coinId, Long amount) {
+        CoinWallet coinWallet = coinWalletRepository.findByUserIdAndCoinIdForUpdate(userId, coinId)
+                .orElseThrow(() -> new CoinWalletException(COIN_WALLET_NOT_FOUND));
+        coinWallet.decreaseAmount(amount);
+        coinWalletRepository.save(coinWallet);
+        log.info("코인 차감: userId={}, coinId={}, amount={}", userId, coinId, amount);
+    }
+
+    @Transactional
+    public void creditCoin(Long userId, Long coinId, Long amount) {
+        CoinWallet coinWallet = coinWalletRepository.findByUserIdAndCoinIdForUpdate(userId, coinId)
+                .orElseGet(() -> CoinWallet.builder()
+                        .userId(userId)
+                        .coinId(coinId)
+                        .amount(0L)
+                        .build());
+        coinWallet.increaseAmount(amount);
+        coinWalletRepository.save(coinWallet);
+        log.info("코인 증가: userId={}, coinId={}, amount={}", userId, coinId, amount);
+    }
 }

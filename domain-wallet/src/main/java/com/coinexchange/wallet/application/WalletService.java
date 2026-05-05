@@ -100,4 +100,25 @@ public class WalletService {
                 String.format("매도 주문 체결 완료: 사용자 ID: %d, 체결 금액: %s", userId, price)
         ));
     }
+
+    @Transactional
+    public void debitKrw(Long userId, BigDecimal amount) {
+        Wallet wallet = walletRepository.findByUserIdAndCurrencyForUpdate(userId, Wallet.Currency.KRW)
+                .orElseThrow(() -> new WalletException(WALLET_NOT_FOUND));
+        wallet.decreaseBalance(amount);
+        walletRepository.save(wallet);
+        log.info("KRW 차감: userId={}, amount={}", userId, amount);
+    }
+
+    @Transactional
+    public void creditKrw(Long userId, BigDecimal amount) {
+        Wallet wallet = walletRepository.findByUserIdAndCurrencyForUpdate(userId, Wallet.Currency.KRW)
+                .orElseGet(() -> Wallet.builder()
+                        .userId(userId)
+                        .currency(Wallet.Currency.KRW)
+                        .build());
+        wallet.increaseBalance(amount);
+        walletRepository.save(wallet);
+        log.info("KRW 증가: userId={}, amount={}", userId, amount);
+    }
 }
