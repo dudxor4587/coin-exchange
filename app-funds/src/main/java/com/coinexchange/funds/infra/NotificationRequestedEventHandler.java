@@ -1,26 +1,26 @@
-package com.coinexchange.order.infra.publisher;
+package com.coinexchange.funds.infra;
 
-import com.coinexchange.events.order.SellOrderReadyEvent;
+import com.coinexchange.events.notification.NotificationRequestedEvent;
 import lombok.RequiredArgsConstructor;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.event.TransactionPhase;
 import org.springframework.transaction.event.TransactionalEventListener;
 
-import static com.coinexchange.common.config.RabbitMQChannels.SELL_ORDER_READY_EXCHANGE;
-import static com.coinexchange.common.config.RabbitMQChannels.SELL_ORDER_READY_ROUTING_KEY;
+import static com.coinexchange.common.config.RabbitMQChannels.NOTIFICATION_REQUESTED_EXCHANGE;
+import static com.coinexchange.common.config.RabbitMQChannels.NOTIFICATION_REQUESTED_ROUTING_KEY;
 
 @Component
 @RequiredArgsConstructor
-public class SellOrderReadyEventHandler {
+public class NotificationRequestedEventHandler {
 
     private final RabbitTemplate rabbitTemplate;
 
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
-    public void publish(SellOrderReadyEvent event) {
+    public void publish(NotificationRequestedEvent event) {
         rabbitTemplate.convertAndSend(
-                SELL_ORDER_READY_EXCHANGE,
-                SELL_ORDER_READY_ROUTING_KEY,
+                NOTIFICATION_REQUESTED_EXCHANGE,
+                NOTIFICATION_REQUESTED_ROUTING_KEY,
                 event
         );
     }

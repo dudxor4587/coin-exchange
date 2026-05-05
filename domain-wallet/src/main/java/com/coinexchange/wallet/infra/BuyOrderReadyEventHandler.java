@@ -1,4 +1,4 @@
-package com.coinexchange.order.infra.publisher;
+package com.coinexchange.wallet.infra;
 
 import com.coinexchange.events.order.BuyOrderReadyEvent;
 import lombok.RequiredArgsConstructor;

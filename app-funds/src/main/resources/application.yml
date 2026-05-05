@@ -1,0 +1,39 @@
+spring:
+  application:
+    name: funds-service
+  profiles:
+    active: test
+  datasource:
+    url: jdbc:mysql://coin-exchange-mysql:3306/coinExchange?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Seoul
+    username: root
+    password: 1234
+    driver-class-name: com.mysql.cj.jdbc.Driver
+  jpa:
+    hibernate:
+      ddl-auto: update
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.MySQLDialect
+    show-sql: false
+  rabbitmq:
+    host: coin-exchange-rabbitmq
+    port: 5672
+    username: guest
+    password: guest
+
+server:
+  port: 8083
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+
+jwt:
+  secret: dev-secret-change-me-this-must-be-long-enough-for-hs256-algorithm
+  expiration: 3600000
+
+services:
+  user:
+    base-url: http://coin-exchange-user:8082

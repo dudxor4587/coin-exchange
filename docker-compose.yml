@@ -13,7 +13,31 @@ services:
         condition: service_healthy
       coin-exchange-user:
         condition: service_healthy
+      coin-exchange-funds:
+        condition: service_healthy
     restart: always
+
+  coin-exchange-funds:
+    build:
+      context: .
+      dockerfile: Dockerfile.funds
+    container_name: coin-exchange-funds
+    ports:
+      - "8083:8083"
+    depends_on:
+      coin-exchange-mysql:
+        condition: service_healthy
+      coin-exchange-rabbitmq:
+        condition: service_healthy
+      coin-exchange-user:
+        condition: service_healthy
+    restart: always
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fs http://localhost:8083/actuator/health || exit 1"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+      start_period: 15s
 
   coin-exchange-user:
     build:
