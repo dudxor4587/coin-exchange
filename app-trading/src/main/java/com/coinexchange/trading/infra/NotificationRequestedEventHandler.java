@@ -1,4 +1,4 @@
-package com.coinexchange.infra.notification;
+package com.coinexchange.trading.infra;
 
 import com.coinexchange.events.notification.NotificationRequestedEvent;
 import lombok.RequiredArgsConstructor;

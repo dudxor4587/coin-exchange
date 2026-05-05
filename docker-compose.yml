@@ -39,6 +39,30 @@ services:
       retries: 20
       start_period: 15s
 
+  coin-exchange-trading:
+    build:
+      context: .
+      dockerfile: Dockerfile.trading
+    container_name: coin-exchange-trading
+    ports:
+      - "8084:8084"
+    depends_on:
+      coin-exchange-mysql:
+        condition: service_healthy
+      coin-exchange-redis:
+        condition: service_healthy
+      coin-exchange-rabbitmq:
+        condition: service_healthy
+      coin-exchange-funds:
+        condition: service_healthy
+    restart: always
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fs http://localhost:8084/actuator/health || exit 1"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+      start_period: 15s
+
   coin-exchange-user:
     build:
       context: .
