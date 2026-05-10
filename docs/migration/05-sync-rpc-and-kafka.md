@@ -226,6 +226,7 @@ public void placeBuyOrder(...) {
 K6 회귀: **8,083 요청 / 0 에러, p95 2.5s, throughput 100/s**.
 
 이전 단계(4단계 gateway 도입 후) 대비:
+
 | 단계 | 처리량 | p95 | 에러 |
 |---|---|---|---|
 | 4단계 (gateway) | 449/s | 494ms | 0% |
