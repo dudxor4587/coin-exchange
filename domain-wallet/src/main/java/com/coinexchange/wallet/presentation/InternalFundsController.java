@@ -1,9 +1,11 @@
 package com.coinexchange.wallet.presentation;
 
 import com.coinexchange.wallet.application.CoinWalletService;
+import com.coinexchange.wallet.application.SettlementService;
 import com.coinexchange.wallet.application.WalletService;
 import com.coinexchange.wallet.presentation.dto.CoinAmountRequest;
 import com.coinexchange.wallet.presentation.dto.KrwAmountRequest;
+import com.coinexchange.wallet.presentation.dto.SettleRequest;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -18,6 +20,7 @@ public class InternalFundsController {
 
     private final WalletService walletService;
     private final CoinWalletService coinWalletService;
+    private final SettlementService settlementService;
 
     @PostMapping("/krw/credit")
     public ResponseEntity<Void> creditKrw(@RequestBody KrwAmountRequest req) {
@@ -40,6 +43,13 @@ public class InternalFundsController {
     @PostMapping("/coin/debit")
     public ResponseEntity<Void> debitCoin(@RequestBody CoinAmountRequest req) {
         coinWalletService.debitCoin(req.userId(), req.coinId(), req.amount());
+        return ResponseEntity.ok().build();
+    }
+
+    @PostMapping("/settle")
+    public ResponseEntity<Void> settle(@RequestBody SettleRequest req) {
+        settlementService.settleMatch(req.buyerId(), req.sellerId(), req.coinId(),
+                req.matchedAmount(), req.totalKrw());
         return ResponseEntity.ok().build();
     }
 }
