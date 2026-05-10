@@ -47,3 +47,7 @@ jwt:
 
 matching:
   engine: redis
+
+services:
+  funds:
+    base-url: http://coin-exchange-funds:8083

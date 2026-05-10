@@ -1,30 +1,18 @@
 package com.coinexchange.order.domain;
 
 import com.coinexchange.common.domain.BaseTimeEntity;
-import com.coinexchange.events.order.BuyOrderCompletedEvent;
-import com.coinexchange.events.order.BuyOrderFilledEvent;
-import com.coinexchange.events.order.SellOrderCompletedEvent;
-import com.coinexchange.events.order.SellOrderFilledEvent;
 import jakarta.persistence.*;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
-import org.springframework.data.domain.AfterDomainEventPublication;
-import org.springframework.data.domain.DomainEvents;
 
 import java.math.BigDecimal;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
 
 @Entity
 @Getter
 @NoArgsConstructor
 @Table(name = "`order`")
 public class Order extends BaseTimeEntity {
-
-    @Transient
-    private final List<Object> domainEvents = new ArrayList<>();
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -44,10 +32,10 @@ public class Order extends BaseTimeEntity {
     private Type type;
 
     @Column(nullable = true)
-    private BigDecimal lockedFunds; // 사용자 예치금
+    private BigDecimal lockedFunds;
 
     @Column(nullable = true)
-    private String failedReason; // 주문 실패 사유
+    private String failedReason;
 
     @Enumerated(EnumType.STRING)
     private Status status;
@@ -86,43 +74,14 @@ public class Order extends BaseTimeEntity {
 
     public void fill(Long amount) {
         this.filledAmount += amount;
-        registerFillEvent(amount);
-
         if (isFilled()) {
             this.status = Status.FILLED;
-            registerCompletionEvent();
             return;
         }
         this.status = Status.PARTIAL;
     }
 
-    private void registerFillEvent(Long amount) {
-        if (this.type == Type.BUY) {
-            domainEvents.add(new BuyOrderFilledEvent(this.id, this.userId, this.coinId, amount));
-        } else {
-            domainEvents.add(new SellOrderFilledEvent(this.id, this.userId, this.price.multiply(BigDecimal.valueOf(amount))));
-        }
-    }
-
-    private void registerCompletionEvent() {
-        if (this.type == Type.BUY) {
-            domainEvents.add(new BuyOrderCompletedEvent(this.id, this.userId, this.coinId, this.filledAmount));
-        } else {
-            domainEvents.add(new SellOrderCompletedEvent(this.id, this.userId, this.coinId, this.filledAmount));
-        }
-    }
-
     private boolean isFilled() {
         return this.filledAmount.equals(this.orderAmount);
-    }
-
-    @DomainEvents
-    protected List<Object> domainEvents() {
-        return Collections.unmodifiableList(domainEvents);
-    }
-
-    @AfterDomainEventPublication
-    protected void clearDomainEvents() {
-        this.domainEvents.clear();
     }
 }

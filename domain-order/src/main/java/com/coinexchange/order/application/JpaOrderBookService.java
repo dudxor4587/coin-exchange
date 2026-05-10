@@ -1,10 +1,9 @@
 package com.coinexchange.order.application;
 
+import com.coinexchange.order.domain.Order;
 import com.coinexchange.order.domain.OrderBook;
 import com.coinexchange.order.domain.repository.OrderBookRepository;
-import com.coinexchange.events.order.BuyOrderReadyEvent;
 import com.coinexchange.order.event.OrderBookRollbackEvent;
-import com.coinexchange.events.order.SellOrderReadyEvent;
 import com.coinexchange.order.exception.OrderBookException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -24,38 +23,22 @@ public class JpaOrderBookService implements OrderBookService {
 
     @Override
     @Transactional
-    public void processBuyOrder(BuyOrderReadyEvent event) {
+    public void placeOrder(Order order) {
+        OrderBook.Type type = order.getType() == Order.Type.BUY ? OrderBook.Type.BUY : OrderBook.Type.SELL;
         OrderBook orderBook = OrderBook.builder()
-                .id(event.orderId())
-                .coinId(event.coinId())
-                .price(event.price())
-                .type(OrderBook.Type.BUY)
-                .remainingAmount(event.amount())
-                .userId(event.userId())
-                .orderId(event.orderId())
+                .id(order.getId())
+                .coinId(order.getCoinId())
+                .price(order.getPrice())
+                .type(type)
+                .remainingAmount(order.getOrderAmount())
+                .userId(order.getUserId())
+                .orderId(order.getId())
                 .build();
 
         orderBookRepository.save(orderBook);
-        log.info("매수 주문 등록 완료: orderId={}, coinId={}, price={}, amount={}",
-                event.orderId(), event.coinId(), event.price(), event.amount());
-    }
-
-    @Override
-    @Transactional
-    public void processSellOrder(SellOrderReadyEvent event) {
-        OrderBook orderBook = OrderBook.builder()
-                .id(event.orderId())
-                .coinId(event.coinId())
-                .price(event.price())
-                .type(OrderBook.Type.SELL)
-                .remainingAmount(event.amount())
-                .userId(event.userId())
-                .orderId(event.orderId())
-                .build();
-
-        orderBookRepository.save(orderBook);
-        log.info("매도 주문 등록 완료: orderId={}, coinId={}, price={}, amount={}",
-                event.orderId(), event.coinId(), event.price(), event.amount());
+        log.info("{} 주문 등록 완료: orderId={}, coinId={}, price={}, amount={}",
+                type == OrderBook.Type.BUY ? "매수" : "매도",
+                order.getId(), order.getCoinId(), order.getPrice(), order.getOrderAmount());
     }
 
     @Override
