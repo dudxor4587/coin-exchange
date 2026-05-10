@@ -1,8 +1,8 @@
-package com.coinexchange.deposit.admin.presentation;
+package com.coinexchange.funds.presentation;
 
-import com.coinexchange.deposit.admin.application.DepositAdminService;
 import com.coinexchange.deposit.admin.presentation.dto.DepositApproveRequest;
 import com.coinexchange.deposit.admin.presentation.dto.DepositRejectRequest;
+import com.coinexchange.funds.application.DepositApprovalService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
@@ -19,26 +19,17 @@ import org.springframework.web.bind.annotation.RestController;
 @Slf4j
 public class DepositAdminController {
 
-    private final DepositAdminService depositAdminService;
+    private final DepositApprovalService depositApprovalService;
 
     @PostMapping("/approve")
     public ResponseEntity<String> approve(@RequestBody DepositApproveRequest request) {
-        Long depositId = request.depositId();
-        depositAdminService.approve(depositId);
-
-        log.info("입금 요청이 승인되었습니다. 입금 요청 ID: {}", depositId);
-
+        depositApprovalService.approve(request.depositId());
         return ResponseEntity.ok("입금 요청이 승인되었습니다.");
     }
 
     @PostMapping("/reject")
     public ResponseEntity<String> reject(@RequestBody DepositRejectRequest request) {
-        Long depositId = request.depositId();
-        String reason = request.reason();
-        depositAdminService.reject(depositId, reason);
-
-        log.info("입금 요청이 거부되었습니다. 입금 요청 ID : {}, 거절 사유 : {}", depositId, reason);
-
+        depositApprovalService.reject(request.depositId(), request.reason());
         return ResponseEntity.ok("입금 요청이 거부되었습니다.");
     }
 }

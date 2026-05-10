@@ -1,6 +1,6 @@
-package com.coinexchange.withdraw.admin.presentation;
+package com.coinexchange.funds.presentation;
 
-import com.coinexchange.withdraw.admin.application.WithdrawAdminService;
+import com.coinexchange.funds.application.WithdrawApprovalService;
 import com.coinexchange.withdraw.admin.presentation.dto.WithdrawApproveRequest;
 import com.coinexchange.withdraw.admin.presentation.dto.WithdrawRejectRequest;
 import lombok.RequiredArgsConstructor;
@@ -19,26 +19,17 @@ import org.springframework.web.bind.annotation.RestController;
 @Slf4j
 public class WithdrawAdminController {
 
-    private final WithdrawAdminService withdrawAdminService;
+    private final WithdrawApprovalService withdrawApprovalService;
 
     @PostMapping("/approve")
     public ResponseEntity<String> approve(@RequestBody WithdrawApproveRequest request) {
-        Long withdrawId = request.withdrawId();
-        withdrawAdminService.approve(withdrawId);
-
-        log.info("출금 요청이 승인되었습니다. 출금 요청 ID: {}", withdrawId);
-
+        withdrawApprovalService.approve(request.withdrawId());
         return ResponseEntity.ok("출금 요청이 승인되었습니다.");
     }
 
     @PostMapping("/reject")
     public ResponseEntity<String> reject(@RequestBody WithdrawRejectRequest request) {
-        Long withdrawId = request.withdrawId();
-        String reason = request.reason();
-        withdrawAdminService.reject(withdrawId, reason);
-
-        log.info("출금 요청이 거부되었습니다. 출금 요청 ID: {}, 거절 사유: {}", withdrawId, reason);
-
+        withdrawApprovalService.reject(request.withdrawId(), request.reason());
         return ResponseEntity.ok("출금 요청이 거부되었습니다.");
     }
 }

@@ -1,26 +1,20 @@
 package com.coinexchange.withdraw.application;
 
-import com.coinexchange.events.notification.NotificationRequestedEvent;
 import com.coinexchange.withdraw.application.dto.WithdrawResponse;
 import com.coinexchange.withdraw.application.mapper.WithdrawMapper;
 import com.coinexchange.withdraw.domain.Withdraw;
 import com.coinexchange.withdraw.domain.repository.WithdrawRepository;
-import com.coinexchange.withdraw.exception.WithdrawException;
 import lombok.RequiredArgsConstructor;
-import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
-
-import static com.coinexchange.withdraw.exception.WithdrawExceptionType.WITHDRAW_NOT_FOUND;
 
 @Service
 @RequiredArgsConstructor
 public class WithdrawService {
 
     private final WithdrawRepository withdrawRepository;
-    private final ApplicationEventPublisher eventPublisher;
 
     @Transactional
     public WithdrawResponse withdrawRequest(Long userId, String bank, String accountNumber, BigDecimal amount) {
@@ -33,21 +27,6 @@ public class WithdrawService {
                 .build();
 
         withdrawRepository.save(withdraw);
-
         return WithdrawMapper.toResponse(withdraw);
-    }
-
-    @Transactional
-    public void handleWithdrawFailure(Long withdrawId, String reason) {
-        Withdraw withdraw = withdrawRepository.findById(withdrawId)
-                .orElseThrow(() -> new WithdrawException(WITHDRAW_NOT_FOUND));
-
-        withdraw.fail(reason);
-        withdrawRepository.save(withdraw);
-
-        eventPublisher.publishEvent(new NotificationRequestedEvent(
-                withdraw.getUserId(),
-                "출금 실패, 사유 : " + reason
-        ));
     }
 }

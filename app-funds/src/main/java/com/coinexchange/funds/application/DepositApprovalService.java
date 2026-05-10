@@ -1,11 +1,13 @@
-package com.coinexchange.deposit.admin.application;
+package com.coinexchange.funds.application;
 
 import com.coinexchange.deposit.domain.Deposit;
 import com.coinexchange.deposit.domain.repository.DepositRepository;
 import com.coinexchange.deposit.exception.DepositException;
-import com.coinexchange.events.deposit.DepositApprovedEvent;
 import com.coinexchange.events.deposit.DepositRejectedEvent;
+import com.coinexchange.events.notification.NotificationRequestedEvent;
+import com.coinexchange.wallet.application.WalletService;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -14,9 +16,11 @@ import static com.coinexchange.deposit.exception.DepositExceptionType.DEPOSIT_NO
 
 @Service
 @RequiredArgsConstructor
-public class DepositAdminService {
+@Slf4j
+public class DepositApprovalService {
 
     private final DepositRepository depositRepository;
+    private final WalletService walletService;
     private final ApplicationEventPublisher eventPublisher;
 
     @Transactional
@@ -27,10 +31,14 @@ public class DepositAdminService {
         deposit.approve();
         depositRepository.save(deposit);
 
-        eventPublisher.publishEvent(new DepositApprovedEvent(
+        walletService.creditKrw(deposit.getUserId(), deposit.getAmount());
+
+        eventPublisher.publishEvent(new NotificationRequestedEvent(
                 deposit.getUserId(),
-                deposit.getAmount()
+                "거래소에 요청하신 입금 처리가 완료되었습니다. 입금액: " + deposit.getAmount()
         ));
+        log.info("입금 승인 완료: depositId={}, userId={}, amount={}",
+                depositId, deposit.getUserId(), deposit.getAmount());
     }
 
     @Transactional
@@ -45,5 +53,6 @@ public class DepositAdminService {
                 deposit.getUserId(),
                 reason
         ));
+        log.info("입금 거절: depositId={}, reason={}", depositId, reason);
     }
 }
