@@ -141,23 +141,132 @@ sync 전환과 함께 *대거 dead code*가 됐다. 약 800줄 삭제.
 - `CurrentUserIdArgumentResolver`를 cookie + JwtTokenProvider 기반에서 *SecurityContext 기반*으로 바꿨다. 4단계에서 gateway가 토큰 검증 후 X-User-Id 헤더를 박고, downstream의 `HeaderAuthenticationFilter`가 SecurityContext에 그걸 박아 두는 흐름이 있으므로, resolver는 그걸 읽기만 하면 된다. 깔끔.
 - 새 `WebMvcSecurityConfig`를 common-core에 두어 모든 서비스가 공유하도록 했다.
 
-## 아직 안 한 것 (이 챕터 안에서 이어서)
+## 한 일 4 — 입금/출금 승인도 sync로
 
-여기까지가 *적재적소 재조정*의 핵심. 남은 작업:
+매수/매도와 같은 패턴으로, `deposit-service`와 `withdraw-service`의 *승인* 흐름도 sync RPC로 바꿨다.
 
-- **입금/출금 승인 흐름도 sync RPC로** — `deposit/withdraw 승인 → funds.credit/debit` 직접 호출. 관련 이벤트들 제거.
-- **남은 비동기 이벤트들에 대해 Kafka + Outbox + 멱등성 적용**
-  - 남는 이벤트: `NotificationRequestedEvent`, `TradeCreatedEvent` (감사용), `*Rejected`, `*Failed`, `*Rollback`
-  - 이들은 *진짜로 비동기여도 OK인 것들*. side-effect거나 외부 경계.
-  - RabbitMQ → Kafka, key=userId 또는 coinId
-  - Outbox 패턴: 비즈니스 트랜잭션과 publish 의도를 한 트랜잭션으로
-  - 컨슈머 멱등성: ProcessedEvent dedup 테이블
-- **RabbitMQ 인프라 제거** (docker-compose, 의존, 설정)
-- **K6 회귀 + 응답 시간 변화 측정** — sync 도입 후 매수 응답이 빨라졌는지 정량 확인
-- **파티션 키 동작 검증** — 같은 coinId가 같은 Kafka 파티션으로 가는지
+승인은 어드민이 클릭하는 즉시 잔고에 반영되어야 하는 *정합성 도메인* — 사용자 입장에서 "내 입금 처리됐나"의 답을 즉시 받아야 한다. 이전엔 `DepositApprovedEvent` → 큐 → 컨슈머 → 잔고 증가의 비동기 체인이었는데, 동기로 직접 호출:
+
+```
+DepositAdminController
+  ↓ (admin 권한 체크)
+DepositApprovalService.approve  ← @Transactional
+  ├─ deposit.approve() (Deposit 도메인)
+  ├─ walletService.creditKrw (직접 호출 — 같은 funds-service 안)
+  └─ NotificationRequestedEvent (비동기, Kafka)
+```
+
+`WalletService`를 같은 서비스(`funds-service`) 내부에서 직접 부르는 패턴 — RPC 거치지 않고 in-process. `OrderFlowService`가 `FundsClient`로 *교차 서비스* 호출인 것과 대비. *분리는 서비스 경계에서만 하고, 내부에선 직접 호출*이 합리적.
+
+`DepositApprovedEventHandler`, `DepositApprovedEventListener`, `WithdrawApprovedEventHandler`, `WithdrawApprovedEventListener`, `WithdrawFailedEventListener` 모두 dead code가 되어 삭제. `WithdrawFailedEvent`도 더 이상 발행되지 않는다 — sync 흐름에서 잔고 차감 실패는 트랜잭션 롤백으로 끝남.
+
+거절 흐름(`DepositRejectedEvent`, `WithdrawRejectedEvent`)은 *알림 트리거*라 비동기 그대로 유지.
+
+## 한 일 5 — Kafka + Outbox 도입
+
+남은 *진짜 비동기 이벤트들*에만 Kafka를 적용했다. 적용 대상:
+- `NotificationRequestedEvent` (체결/입출금 알림)
+- `DepositRejectedEvent`, `WithdrawRejectedEvent` (거절 알림)
+
+토픽 이름: `notification.requested`, `deposit.rejected`, `withdraw.rejected`. 파티션 수 **8**, 키 = userId. 6단계 수평 확장 시 사용자 단위 병렬 처리 + 같은 사용자의 알림 순서 보장.
+
+### Outbox 패턴
+
+발행 보장을 위해 outbox 패턴을 도입. 비즈니스 트랜잭션과 publish 의도를 *같은 DB 트랜잭션 안에서* 원자적으로 커밋.
+
+```
+[publisher 측 — funds-service / trading-service]
+  비즈니스 @Transactional {
+      DB 변경 (잔고/주문/거래)
+      ApplicationEventPublisher.publishEvent(NotificationRequestedEvent)
+  }
+  ↓
+  EventToOutboxBridge (BEFORE_COMMIT)  ← 같은 트랜잭션 안
+      outbox_message INSERT
+  ↓
+  COMMIT
+  ↓
+[OutboxRelay (별도 스케줄)]
+  @Scheduled(200ms) + @Transactional
+      SELECT FOR UPDATE limit 200
+      KafkaTemplate.send().get()
+      mark PUBLISHED
+```
+
+`@TransactionalEventListener(BEFORE_COMMIT)`이 핵심 — 리스너가 비즈니스 트랜잭션 안에서 실행돼서, outbox INSERT가 원자적으로 묶임. 비즈니스 변경이 롤백되면 outbox 행도 같이 사라진다 (publish가 일어나지 않을 변경은 publish하지 않음).
+
+처음엔 *push + polling 하이브리드*로 시도했다 — `AFTER_COMMIT`에서 인메모리 신호를 보내 50ms 스케줄러가 즉시 깨우게 하고, 1초 폴링은 안전망으로 두는 형태. 하지만 50ms 스케줄러와 1초 스케줄러가 동시에 같은 `SELECT ... FOR UPDATE NOWAIT`를 실행하면서 락 경합이 생겨, *애초에 NOWAIT를 쓴 의도(타 인스턴스와 안전 분배)*와 *현재 단일 인스턴스에서의 자기 충돌*이 섞여 망가졌다. 단순화 — push 트리거 빼고 200ms 폴링만, NOWAIT 빼고 일반 락 대기로.
+
+### Outbox 도입의 OrderBook race
+
+매수/매도 흐름에서 한 함정 — `OrderFlowService.placeBuyOrder`에 `@Transactional`이 걸려 있으면, *Order 저장 → OrderBook(Redis) 등록 → 매칭 → 정산*이 한 트랜잭션 안. Order는 트랜잭션 끝에 commit되는데 *OrderBook(Redis)은 즉시 등록*. 두 자원이 트랜잭셔널 묶음이 아니다.
+
+다른 스레드의 매칭 시점에 OrderBook에선 보이는데 DB에선 아직 안 보이는 *간극*이 생긴다. 그 시점에 매칭이 잡히면 `fillOrder(otherOrderId)`가 *commit 전 다른 트랜잭션*의 row를 못 찾아서 `ORDER_NOT_FOUND` 폭발.
+
+수정 방향:
+- `placeBuyOrder`/`placeSellOrder`의 `@Transactional` 제거
+- `orderService.createBuyOrder`만 @Transactional (자체 커밋) → OrderBook 등록은 **commit 후**
+- `processMatch`는 별도 빈(`MatchProcessor`)으로 추출 — self-invocation 회피
+
+```java
+public void placeBuyOrder(...) {
+    fundsClient.debitKrw(...);
+    Order order = orderService.createBuyOrder(...);  // @Transactional 안에서 commit
+    orderBookService.placeOrder(order);              // commit 후에 OrderBook
+    for (match : matchingEngine.match()) {
+        matchProcessor.processMatch(match);          // 각 매칭이 별도 @Transactional
+    }
+}
+```
+
+이 race는 *Outbox 도입과 무관*하게 잠재해 있던 결함이었다. 이전 K6 시나리오는 부하가 낮을 때 우연히 안 터졌을 뿐. Outbox 도입으로 트랜잭션 path가 더 길어지면서 (BEFORE_COMMIT 핸들러 + 추가 INSERT) 노출됐다.
+
+## 검증
+
+K6 회귀: **8,083 요청 / 0 에러, p95 2.5s, throughput 100/s**.
+
+이전 단계(4단계 gateway 도입 후) 대비:
+| 단계 | 처리량 | p95 | 에러 |
+|---|---|---|---|
+| 4단계 (gateway) | 449/s | 494ms | 0% |
+| **5단계 (sync + Kafka + Outbox)** | **100/s** | **2.5s** | **0%** |
+
+응답 시간이 5배, 처리량이 4배 떨어졌다. 이게 *비싸 보이는데*, 이번 챕터에서 추가된 정합성/내구성 비용을 정량화한 결과:
+
+- sync RPC: 매수 흐름에 `funds.debitKrw` + `funds.settle` 두 번의 HTTP hop 추가
+- Outbox INSERT: 모든 이벤트 발행에 DB INSERT 한 번 추가
+- Outbox 폴링: 200ms 주기로 SELECT FOR UPDATE — 다른 INSERT와 락 경합
+- Kafka 발행: relay → Kafka send (sync `.get()`)
+
+각 비용은 작지만 한 요청에 4~5번 곱해지면서 누적. 이 *측정값*은 7단계 운영 이슈에서 풀어나갈 출발점이 된다 (HikariCP 풀 튜닝, Kafka producer batching, outbox 폴링 주기).
+
+파티션 키 동작 검증:
+- `notification.requested` 토픽: 8 파티션 자동 생성 ✓
+- `userId` 키 기반 라우팅 — 같은 사용자는 같은 파티션으로 흐름
+
+## 의도적으로 미룬 것
+
+이 챕터에서 *원래 계획에 있었지만 7단계로 미룬 것* 두 가지:
+
+**1. 컨슈머 멱등성 (`ProcessedEvent` dedup 테이블)**
+
+Outbox는 *최소 한 번* 보장 — relay가 발행 후 마킹 전에 죽으면 재발행됨. 컨슈머에서 중복 처리되면 같은 거래가 두 번 생성되는 식의 정합성 깨짐. 이걸 막으려면 `eventId` 기반 dedup이 필요.
+
+본 챕터에서 빼둔 이유:
+- 우리 K6 시나리오에선 컨슈머 리밸런스/재시도가 발생하지 않음 — 단일 컨슈머 인스턴스
+- 6단계 k8s + HPA에서 컨슈머 인스턴스가 늘어나면 진짜 문제로 만남
+- 그때 `eventId` 추가 + `processed_event` 테이블을 한 번에 묶어서 도입하는 게 *문맥과 같이 가는* 정리
+
+**2. 이벤트에 `eventId` 필드 추가**
+
+위 멱등성과 짝. eventId 없이 dedup 못 하므로 같이 미룸.
+
+이 두 가지는 7단계 *운영 이슈* 챕터에서 회로차단기, 분산 트레이싱과 함께 다룬다.
 
 ## 한 줄 정리
 
-이 챕터의 본질은 *"Kafka로 갈아끼우기"*가 아니라 **"이벤트 만능에서 적재적소로 — 정합성 도메인을 sync로 되돌리고, 진짜 비동기인 것들만 Kafka 위에 남긴다"**.
+이 챕터의 본질은 *"Kafka로 갈아끼우기"*가 아니라 **"이벤트 만능에서 적재적소로 — 정합성 도메인을 sync로 되돌리고, 진짜 비동기인 것들만 Kafka 위에 Outbox로 보장한다"**.
 
 이 깨달음을 *코드까지 적용한* 시점이 6단계(k8s/HPA, 자원 격리) 들어가기 직전이라는 게 결정적이었다 — 더 늦으면 마이그레이션 비용이 비례 이상으로 증가한다.
+
+응답 시간 저하가 의미 있는 수준이지만, 그건 *정합성을 사기 위한 비용*. 7단계의 튜닝 출발점.
