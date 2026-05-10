@@ -25,7 +25,7 @@ services:
     depends_on:
       coin-exchange-funds-db:
         condition: service_healthy
-      coin-exchange-rabbitmq:
+      coin-exchange-kafka:
         condition: service_healthy
       coin-exchange-user:
         condition: service_healthy
@@ -49,7 +49,7 @@ services:
         condition: service_healthy
       coin-exchange-redis:
         condition: service_healthy
-      coin-exchange-rabbitmq:
+      coin-exchange-kafka:
         condition: service_healthy
       coin-exchange-funds:
         condition: service_healthy
@@ -87,7 +87,7 @@ services:
     expose:
       - "8081"
     depends_on:
-      coin-exchange-rabbitmq:
+      coin-exchange-kafka:
         condition: service_healthy
     restart: always
 
@@ -154,22 +154,31 @@ services:
       retries: 20
       start_period: 10s
 
-  coin-exchange-rabbitmq:
-    image: rabbitmq:3-management
-    container_name: coin-exchange-rabbitmq
+  coin-exchange-kafka:
+    image: bitnami/kafka:3.7
+    container_name: coin-exchange-kafka
     ports:
-      - "5673:5672"
-      - "15672:15672"
+      - "9092:9092"
+      - "9094:9094"
     environment:
-      RABBITMQ_DEFAULT_USER: guest
-      RABBITMQ_DEFAULT_PASS: guest
+      KAFKA_CFG_NODE_ID: 0
+      KAFKA_CFG_PROCESS_ROLES: controller,broker
+      KAFKA_CFG_LISTENERS: PLAINTEXT://:9092,CONTROLLER://:9093,EXTERNAL://:9094
+      KAFKA_CFG_ADVERTISED_LISTENERS: PLAINTEXT://coin-exchange-kafka:9092,EXTERNAL://localhost:9094
+      KAFKA_CFG_LISTENER_SECURITY_PROTOCOL_MAP: CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT,EXTERNAL:PLAINTEXT
+      KAFKA_CFG_CONTROLLER_QUORUM_VOTERS: 0@coin-exchange-kafka:9093
+      KAFKA_CFG_CONTROLLER_LISTENER_NAMES: CONTROLLER
+      KAFKA_CFG_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      KAFKA_CFG_AUTO_CREATE_TOPICS_ENABLE: "true"
+      KAFKA_CFG_NUM_PARTITIONS: "8"
+      ALLOW_PLAINTEXT_LISTENER: "yes"
     restart: always
     healthcheck:
-      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
-      interval: 5s
+      test: ["CMD-SHELL", "kafka-topics.sh --bootstrap-server localhost:9092 --list || exit 1"]
+      interval: 10s
       timeout: 5s
       retries: 20
-      start_period: 10s
+      start_period: 30s
 
   coin-exchange-prometheus:
     image: prom/prometheus:latest

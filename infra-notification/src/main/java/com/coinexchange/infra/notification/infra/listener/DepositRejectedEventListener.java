@@ -2,12 +2,12 @@ package com.coinexchange.infra.notification.infra.listener;
 
 import com.coinexchange.events.deposit.DepositRejectedEvent;
 import com.coinexchange.infra.notification.application.NotificationSender;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.amqp.rabbit.annotation.RabbitListener;
+import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.stereotype.Component;
-
-import static com.coinexchange.common.config.RabbitMQChannels.DEPOSIT_REJECT_QUEUE;
 
 @Component
 @Slf4j
@@ -15,9 +15,11 @@ import static com.coinexchange.common.config.RabbitMQChannels.DEPOSIT_REJECT_QUE
 public class DepositRejectedEventListener {
 
     private final NotificationSender notificationSender;
+    private final ObjectMapper objectMapper;
 
-    @RabbitListener(queues = DEPOSIT_REJECT_QUEUE)
-    public void handleDepositRejected(DepositRejectedEvent event) {
+    @KafkaListener(topics = "deposit.rejected", groupId = "notification")
+    public void handle(String json) throws JsonProcessingException {
+        DepositRejectedEvent event = objectMapper.readValue(json, DepositRejectedEvent.class);
         log.info("입금 거절 이벤트 수신: userId={}, reason={}", event.userId(), event.reason());
         notificationSender.send(
                 event.userId(),

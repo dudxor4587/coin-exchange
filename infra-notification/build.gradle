@@ -5,6 +5,6 @@ plugins {
 dependencies {
     implementation project(':events-contract')
     implementation project(':common-core')
-    implementation 'org.springframework.boot:spring-boot-starter-amqp'
+    implementation 'org.springframework.kafka:spring-kafka'
     implementation 'org.springframework.boot:spring-boot-starter-actuator'
 }
