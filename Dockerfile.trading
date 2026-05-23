@@ -6,6 +6,7 @@ COPY app-funds/build.gradle app-funds/
 COPY app-trading/build.gradle app-trading/
 COPY events-contract/build.gradle events-contract/
 COPY common-core/build.gradle common-core/
+COPY common-auth/build.gradle common-auth/
 COPY infra-notification/build.gradle infra-notification/
 COPY domain-coin/build.gradle domain-coin/
 COPY domain-user/build.gradle domain-user/
@@ -17,6 +18,7 @@ COPY domain-wallet/build.gradle domain-wallet/
 RUN chmod +x gradlew && ./gradlew :app-trading:dependencies --no-daemon || true
 COPY events-contract/src events-contract/src
 COPY common-core/src common-core/src
+COPY common-auth/src common-auth/src
 COPY domain-coin/src domain-coin/src
 COPY domain-order/src domain-order/src
 COPY domain-trade/src domain-trade/src

@@ -4,6 +4,7 @@ COPY gradle gradle
 COPY gradlew settings.gradle build.gradle ./
 COPY events-contract/build.gradle events-contract/
 COPY common-core/build.gradle common-core/
+COPY common-auth/build.gradle common-auth/
 COPY infra-notification/build.gradle infra-notification/
 COPY domain-coin/build.gradle domain-coin/
 COPY domain-user/build.gradle domain-user/
