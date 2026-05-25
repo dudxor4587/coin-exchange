@@ -48,6 +48,22 @@ coin-exchange/
 이 모듈이 Spring/JPA 의존을 0으로 유지한 이유도 같다. <br>
 다른 언어나 스키마 시스템으로 교체될 가능성을 닫지 않기 위해서다. <br>
 
+# 후속 정비 — common-auth 분리
+5단계 마무리 시점에 한 가지 더 손을 댔다. <br>
+`common-core` 가 *security + jwt + web + jpa* 를 모두 `api` 의존으로 끌어당기는 구조였는데, 이게 가벼운 서비스 (notification) 에 자동설정 충돌을 만들었다. <br>
+2단계 회고에서도 메모만 남기고 미뤘던 자리였는데, 5단계에 컨슈머 멱등성을 도입하면서 같은 자리에 한 번 더 부딪혀 정리하기로 했다. <br>
+
+`common-core/.../auth/*` 10개 파일을 새 모듈 `common-auth/` 로 떼어내고, common-auth 에 *security + jwt + web* 의존을 두었다. <br>
+common-core 는 *jpa + web* 만 남겼다. <br>
+auth 가 필요한 서비스 (user, funds, trading) 가 build.gradle 에 명시적으로 common-auth 를 추가하고, notification 은 추가하지 않는다. <br>
+
+효과는 단순했다. <br>
+notification 이 security 라이브러리 자체를 안 받게 되어, `NotificationServiceApplication` 의 *SecurityAutoConfiguration 등 4개 exclude 어노테이션* 이 사라졌다. <br>
+이 회피 코드는 *증상을 막던 것* 이지 *원인을 푼 것* 이 아니었는데, common-auth 분리로 원인 자체가 없어졌다. <br>
+
+이건 1단계의 본질과 같은 작업이다. <br>
+*의존이 컴파일 시점에 강제* 되어 *진짜 분리 가능한 구조인지* 가 build.gradle 단계에서 드러나도록. <br>
+
 # 결론
 > 단일 프로세스를 유지한 채 모듈만 먼저 자른 이유는, 결합 문제와 분산 환경 문제를 같이 터트리지 않기 위해서였다. <br>
 > 모듈로 자르는 순간 의존 방향이 컴파일러에 강제되어, *진짜로 분리 가능한 구조인지* 가 빌드 단계에서 드러난다. <br>
