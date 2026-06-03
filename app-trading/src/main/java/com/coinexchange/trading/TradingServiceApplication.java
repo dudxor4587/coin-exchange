@@ -17,14 +17,12 @@ import org.springframework.scheduling.annotation.EnableScheduling;
         "com.coinexchange.order.domain",
         "com.coinexchange.trade.domain",
         "com.coinexchange.coin.domain",
-        "com.coinexchange.common.domain",
-        "com.coinexchange.trading.infra.outbox"
+        "com.coinexchange.common.domain"
 })
 @EnableJpaRepositories(basePackages = {
         "com.coinexchange.order.domain.repository",
         "com.coinexchange.trade.domain.repository",
-        "com.coinexchange.coin.domain.repository",
-        "com.coinexchange.trading.infra.outbox"
+        "com.coinexchange.coin.domain.repository"
 })
 @EnableScheduling
 public class TradingServiceApplication {

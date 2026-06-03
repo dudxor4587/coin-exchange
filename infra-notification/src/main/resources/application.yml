@@ -1,16 +1,11 @@
 spring:
   application:
     name: notification-service
-  kafka:
-    bootstrap-servers: coin-exchange-kafka:9092
-    producer:
-      key-serializer: org.apache.kafka.common.serialization.StringSerializer
-      value-serializer: org.apache.kafka.common.serialization.StringSerializer
-    consumer:
-      group-id: notification
-      auto-offset-reset: earliest
-      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
-      value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+  rabbitmq:
+    host: coin-exchange-rabbitmq
+    port: 5672
+    username: guest
+    password: guest
 
 server:
   port: 8081
