@@ -6,6 +6,7 @@ import com.coinexchange.events.withdraw.WithdrawRejectedEvent;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.event.TransactionPhase;
 import org.springframework.transaction.event.TransactionalEventListener;
@@ -16,6 +17,7 @@ public class EventToOutboxBridge {
 
     private final OutboxRepository outboxRepository;
     private final ObjectMapper objectMapper;
+    private final ApplicationEventPublisher eventPublisher;
 
     @TransactionalEventListener(phase = TransactionPhase.BEFORE_COMMIT)
     public void onNotificationRequested(NotificationRequestedEvent event) {
@@ -40,6 +42,7 @@ public class EventToOutboxBridge {
                     .partitionKey(partitionKey)
                     .payload(json)
                     .build());
+            eventPublisher.publishEvent(new OutboxInsertedSignal());
         } catch (JsonProcessingException e) {
             throw new IllegalStateException("이벤트 직렬화 실패", e);
         }

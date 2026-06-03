@@ -7,22 +7,47 @@ import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.event.TransactionPhase;
+import org.springframework.transaction.event.TransactionalEventListener;
 
 import java.util.List;
+import java.util.concurrent.Semaphore;
 
 @Component
 @RequiredArgsConstructor
 @Slf4j
 public class OutboxRelay {
 
-    private static final int BATCH_SIZE = 200;
+    private static final int BATCH_SIZE = 100;
 
     private final OutboxRepository outboxRepository;
     private final KafkaTemplate<String, String> kafkaTemplate;
+    private final Semaphore wakeup = new Semaphore(0);
 
-    @Scheduled(fixedDelay = 200)
+    @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
+    public void onOutboxInserted(OutboxInsertedSignal signal) {
+        wakeup.release();
+    }
+
+    @Scheduled(fixedDelay = 1000)
+    public void scheduledPoll() {
+        drain();
+    }
+
+    public void drainOnSignal() {
+        if (wakeup.tryAcquire()) {
+            drain();
+            wakeup.drainPermits();
+        }
+    }
+
+    @Scheduled(fixedDelay = 50)
+    private void pumpSignal() {
+        drainOnSignal();
+    }
+
     @Transactional
-    public void poll() {
+    public void drain() {
         List<OutboxMessage> pending = outboxRepository.findPendingForUpdate(PageRequest.of(0, BATCH_SIZE));
         if (pending.isEmpty()) return;
 
