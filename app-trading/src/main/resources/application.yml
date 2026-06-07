@@ -40,6 +40,7 @@ management:
       percentiles-histogram:
         http.server.requests: true
         trade_latency_seconds: true
+        order.flow.segment: true
 
 jwt:
   secret: dev-secret-change-me-this-must-be-long-enough-for-hs256-algorithm
