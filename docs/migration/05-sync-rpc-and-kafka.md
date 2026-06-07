@@ -147,7 +147,7 @@ DepositAdminController
 DepositApprovalService.approve  ← @Transactional
   ├─ deposit.approve() (Deposit 도메인)
   ├─ walletService.creditKrw (직접 호출 — 같은 funds-service 안)
-  └─ NotificationRequestedEvent (비동기, Kafka)
+  └─ NotificationRequestedEvent (비동기)
 ```
 
 `WalletService`를 같은 서비스(funds-service) 내부에서 직접 부르는 패턴이다 — RPC 거치지 않고 같은 프로세스 안에서. <br>
@@ -159,68 +159,106 @@ DepositApprovalService.approve  ← @Transactional
 
 거절 흐름(`DepositRejectedEvent`, `WithdrawRejectedEvent`)은 *알림 트리거* 라 비동기로 유지했다. <br>
 
-# 한 일 5 — Kafka + Outbox 도입
-남은 *진짜 비동기 이벤트들* 에만 Kafka를 적용했다. <br>
+# 한 일 5 — 비동기로 남은 것, 그리고 메시징 백본 재검토
+동기 전환이 끝나고 나니 *진짜 비동기로 남은 이벤트* 는 알림 계열뿐이었다. <br>
 - `NotificationRequestedEvent` (체결/입출금 알림)
 - `DepositRejectedEvent`, `WithdrawRejectedEvent` (거절 알림)
 
-토픽 이름은 `notification.requested`, `deposit.rejected`, `withdraw.rejected`. <br>
-파티션 수는 **8**, 키는 userId. <br>
-6단계 수평 확장 시 사용자 단위 병렬 처리 + 같은 사용자의 알림 순서 보장을 위해서다. <br>
+이 남은 것들을 *Kafka로 옮기는 게 이 챕터의 원래 목표* 였다. <br>
+Kafka를 택했던 이유는 두 가지였다. <br>
+1. **순서 보장** — 파티션 키를 userId로 잡으면 같은 사용자의 알림이 발행 순서대로 처리된다.
+2. **수평 확장** — 6단계에서 컨슈머를 늘릴 때 컨슈머 그룹이 파티션을 자동 재분배한다.
 
-## Outbox 패턴
-발행 보장을 위해 outbox 패턴을 도입했다. <br>
-비즈니스 트랜잭션과 발행 의도를 같은 DB 트랜잭션 안에서 원자적으로 커밋하는 구조다. <br>
+그래서 실제로 *Kafka로 마이그레이션했고*, 그 위에 발행 보장을 위한 **Outbox 패턴** 과 중복 처리를 막는 **컨슈머 멱등성(eventId + dedup 테이블)** 까지 얹었다. <br>
+5단계를 *그 상태로 끝낼 수도 있었다*. <br>
 
-```
-[publisher 측 — funds-service / trading-service]
-  비즈니스 @Transactional {
-      DB 변경 (잔고/주문/거래)
-      ApplicationEventPublisher.publishEvent(NotificationRequestedEvent)
-  }
-  ↓
-  EventToOutboxBridge (BEFORE_COMMIT)  ← 같은 트랜잭션 안
-      outbox_message INSERT + OutboxInsertedSignal 발행
-  ↓
-  COMMIT
-  ↓
-[OutboxRelay (별도 스레드)]
-  AFTER_COMMIT 시그널로 깨어남 + 1초 안전망 폴링
-      SELECT FOR UPDATE limit 200
-      KafkaTemplate.send().get()
-      mark PUBLISHED
-```
+그런데 6단계로 넘어가기 직전, *"기술 도입엔 데이터 근거가 있어야 한다"* 는 원칙으로 이 결정을 다시 들여다봤다. <br>
+Kafka를 택한 첫 번째 이유가 *순서 보장* 인데, **RabbitMQ가 정말 순서를 못 지키는지, Kafka는 지키는지를 측정한 적이 없었다**. <br>
+근거 없이 도입한 셈이라, 측정부터 하기로 했다. <br>
 
-`@TransactionalEventListener(BEFORE_COMMIT)`이 핵심이다 — 리스너가 비즈니스 트랜잭션 안에서 실행돼서, outbox INSERT가 원자적으로 묶인다. <br>
-비즈니스 변경이 롤백되면 outbox row도 같이 사라진다 (발행이 일어나지 않을 변경은 발행하지 않는다). <br>
+# 측정 — RabbitMQ는 정말 순서를 못 지키는가
+같은 측정 도구를 양쪽 백본에 대칭으로 붙였다. <br>
+같은 userId로 `ORDSEQ:1` .. `ORDSEQ:2000` 을 *완벽한 오름차순* 으로 일제히 발행하고, 컨슈머가 처리한 순서에서 *seq가 뒤집힌 횟수(inversions)* 를 셌다. <br>
+컨슈머가 실제 알림 발송처럼 *가변 지연(3ms)* 을 갖도록 두고, 컨슈머 스레드 수(concurrency)를 1/2/4로 바꿔가며 쟀다. <br>
 
-처음엔 *push + polling 하이브리드* 를 시도했었다. <br>
-`AFTER_COMMIT`에서 인메모리 신호를 보내 50ms 스케줄러가 즉시 깨우게 하고, 1초 폴링은 안전망으로 두는 형태였다. <br>
-하지만 50ms 스케줄러와 1초 스케줄러가 동시에 같은 `SELECT ... FOR UPDATE NOWAIT`를 실행하면서 락 경합이 생겼다. <br>
-*애초에 NOWAIT를 쓴 의도(다른 인스턴스와의 안전 분배)* 와 *현재 단일 인스턴스에서의 자기 자신과의 충돌* 이 섞여 망가졌다. <br>
+결과(count=2000): <br>
 
-해결은 워커 하나로 줄이고 *신호 + 타임아웃 안전망* 이었다. <br>
-백그라운드 스레드 하나가 Semaphore 시그널로 깨어나거나 1초 타임아웃으로 깨어나는 형태로 단순화했다. <br>
-자세한 설계 결정은 [발행 보장 (Transactional Outbox)](../발행%20보장%20\(Transactional%20Outbox\).md) 문서에 정리했다. <br>
+| concurrency | RabbitMQ inversions | Kafka inversions |
+|---|---|---|
+| 1 | 0 | 0 |
+| 2 | 742 (37%) | 0 |
+| 4 | 878 ~ 902 (≈44%) | 0 |
 
-## Outbox 도입에서 만난 OrderBook race
-매수/매도 흐름에서 함정이 하나 있었다. <br>
-`OrderFlowService.placeBuyOrder`에 `@Transactional`이 걸려 있으면, *Order 저장 → OrderBook(Redis) 등록 → 매칭 → 정산* 이 한 트랜잭션 안에 묶인다. <br>
-Order는 트랜잭션 끝에 commit되는데 *OrderBook(Redis)은 즉시 등록* 된다. <br>
-두 자원이 트랜잭션으로 묶이지 않는다. <br>
+RabbitMQ는 컨슈머를 늘리는 순간 순서가 무너졌다. <br>
+단일 큐는 *공유 작업 풀* 이라, 컨슈머 N개가 메시지를 각자 집어 병렬 처리하면 *완료 순서가 발행 순서와 어긋난다*. 처리량을 얻으려고 컨슈머를 늘리면 순서를 잃는 trade-off다. <br>
 
-다른 스레드의 매칭 시점에 OrderBook에는 보이는데 DB에는 아직 안 보이는 *간극* 이 생긴다. <br>
-그 시점에 매칭이 잡히면 `fillOrder(otherOrderId)`가 *commit 전 다른 트랜잭션* 의 row를 못 찾아서 `ORDER_NOT_FOUND`가 터진다. <br>
+Kafka는 concurrency를 4로 올려도 inversions가 0이었다. <br>
+파티션 분포를 직접 확인해 보니, key=userId=1로 발행한 메시지가 *전부 한 파티션(partition 7)으로* 갔다. <br>
+같은 키는 고정 파티션, 한 파티션은 한 컨슈머 스레드 — 그래서 concurrency와 무관하게 순서가 유지된다. 동시에 다른 키는 다른 파티션이라 병렬 처리된다. <br>
+*"순서 + 처리량 동시 확보"* 가 Kafka가 RabbitMQ보다 나은 지점이고, 측정으로 그게 확인됐다. <br>
 
-수정 방향은 다음과 같다.
+여기까지만 보면 Kafka가 명백히 옳다. <br>
+그런데 측정은 *"Kafka가 순서를 지킨다"* 를 증명했을 뿐이다. *"그 순서가 우리에게 필요한가"* 는 다른 질문이었다. <br>
+
+# 재해석 — 그 순서가 우리에게 필요한가
+처음 Kafka를 계획할 때 파티션 키를 *coinId* 로 잡으려 했었다. <br>
+*코인별 매수/매도 주문 순서* 가 보장돼야 한다고 생각했기 때문이다. <br>
+거래소에서 주문 순서는 생명이고, 그걸 메시징 백본이 지켜줘야 한다고 봤다. <br>
+
+그런데 이 챕터에서 *매수/매도 흐름을 전부 동기로 되돌렸다* (한 일 1~3). <br>
+이제 주문 순서는 *메시지 큐가 아니라 Redis 매칭엔진의 단일 직렬화 지점* 에서 잡힌다. <br>
+주문이 들어오면 동기로 OrderBook에 등록되고 Lua 스크립트 안에서 매칭이 순서대로 일어난다. <br>
+**코인별 주문 순서는 더 이상 메시징 백본의 책임이 아니다.** <br>
+
+그러면 메시징으로 순서가 중요한 게 뭐가 남나. <br>
+비동기로 남은 건 *알림뿐* 이다. <br>
+그리고 알림 순서는 *strictly critical하지 않다*. <br>
+- 알림은 타임스탬프를 달고 가니 UI에서 정렬할 수 있다.
+- 알림은 *유실* 이 *순서* 보다 더 중요한 문제다.
+- "매수 체결" 알림과 "매도 체결" 알림이 몇 밀리초 뒤바뀌어도 사용자 경험에 치명적이지 않다.
+
+즉 측정으로 확인된 *Kafka의 순서 우위(44% vs 0%)* 가, *우리 시스템에서는 실질적 가치를 갖지 못한다*. <br>
+
+# 결정 — RabbitMQ로 되돌린다
+순서 우위가 우리 맥락에서 가치가 없다면, Kafka를 유지할 이유가 약하다. <br>
+그래서 **Kafka 마이그레이션을 되돌리고 RabbitMQ로 돌아갔다**. <br>
+Kafka 위에 얹었던 *Outbox 패턴* 과 *컨슈머 멱등성* 도 함께 되돌렸다. <br>
+
+셋을 같이 되돌린 건 우연이 아니다. <br>
+Kafka(순서 보장), Outbox(발행 보장), dedup(중복 처리 방지) — 셋 다 *강한 분산 보장 장치* 인데, 현재 비동기로 남은 건 알림뿐이고 *알림에는 이 보장들이 모두 과하다*. <br>
+- Kafka의 순서 보장 → 알림 순서는 critical하지 않음
+- Outbox의 발행 보장 → 알림은 유실돼도 치명적이지 않음 (RabbitMQ의 AFTER_COMMIT 발행으로 충분)
+- dedup 멱등성 → 알림 한 번 더 가는 건 문제가 아님
+
+그리고 이 보장들은 공짜가 아니었다. <br>
+측정해 보면 Outbox INSERT + 폴링, dedup의 SELECT + INSERT가 누적되어 처리량을 끌어내렸다(아래 검증). <br>
+*가치 없는 보장을 위해 처리량을 지불하고 있던 셈* 이다. <br>
+
+그럼 거래소들은 왜 Kafka를 쓰나. <br>
+조사해 보니 거래소가 Kafka를 쓰는 진짜 이유는 *순서* 가 아니라 **체결 스트림의 fan-out** 이었다. <br>
+체결 하나를 *시세 피드, 정산, 리스크 관리, 감사 로그, 알림* 이 동시에 소비하고, 새 분석 시스템이 과거 체결을 재처리하는 구조 — 이건 *소비하면 사라지는* RabbitMQ로는 불가능하고 Kafka의 로그 보존이 필수다. <br>
+우리는 현재 그 fan-out이 *알림 하나뿐* 이라 Kafka의 진짜 가치를 절반도 못 쓴다. <br>
+
+그래서 결론은 **YAGNI** 다 — 필요해지기 전엔 도입하지 않는다. <br>
+지금 규모/기능엔 RabbitMQ로 충분하고, *체결 스트림을 여러 시스템이 소비하는 fan-out 요구가 생기는 시점* 에 Kafka(와 Outbox, dedup)를 함께 재도입하면 된다. 그건 별도의 "거래소다운 기능" 챕터에서 마주할 것이다. <br>
+
+한 가지 예외는 *OrderBook race 수정* 이다. <br>
+이건 Outbox를 도입하며 발견했지만 *메시징 백본과 무관한 correctness 버그* 라, 되돌리지 않고 유지했다 (`placeBuyOrder`의 `@Transactional` 분리 + `MatchProcessor` 추출). 자세한 내용은 아래. <br>
+
+## 유지한 것 — OrderBook race 수정
+`OrderFlowService.placeBuyOrder`에 `@Transactional`이 걸려 있으면, *Order 저장 → OrderBook(Redis) 등록 → 매칭* 이 한 트랜잭션 안에 묶인다. <br>
+Order는 트랜잭션 끝에 commit되는데 *OrderBook(Redis)은 즉시 등록* 된다. 두 자원이 트랜잭션으로 묶이지 않는다. <br>
+다른 스레드의 매칭 시점에 OrderBook에는 보이는데 DB에는 아직 안 보이는 간극이 생기고, 그 사이 `fillOrder`가 *commit 전 row* 를 못 찾아 `ORDER_NOT_FOUND`가 터진다. <br>
+
+수정은 다음과 같다.
 1. `placeBuyOrder`/`placeSellOrder`의 `@Transactional` 제거.
-2. `orderService.createBuyOrder`만 `@Transactional` (자체 commit) → OrderBook 등록은 commit 후.
-3. `processMatch`는 별도 빈(`MatchProcessor`)으로 추출 — 자기 자신 호출 회피.
+2. `orderService.createBuyOrder`만 자체 `@Transactional`로 Order를 먼저 commit → OrderBook 등록은 commit 후.
+3. `processMatch`는 별도 빈(`MatchProcessor`)으로 추출 — 매칭마다 독립 트랜잭션 + 자기 자신 호출 회피.
 
 ```java
 public void placeBuyOrder(...) {
     fundsClient.debitKrw(...);
-    Order order = orderService.createBuyOrder(...);  // @Transactional 안에서 commit
+    Order order = orderService.createBuyOrder(...);  // 자체 @Transactional로 commit
     orderBookService.placeOrder(order);              // commit 후에 OrderBook
     for (match : matchingEngine.match()) {
         matchProcessor.processMatch(match);          // 각 매칭이 별도 @Transactional
@@ -228,83 +266,30 @@ public void placeBuyOrder(...) {
 }
 ```
 
-이 race는 *Outbox 도입과 무관하게* 잠재해 있던 결함이었다. <br>
-이전 K6 시나리오는 부하가 낮을 때 우연히 안 터졌을 뿐이다. <br>
-Outbox 도입으로 트랜잭션 path가 더 길어지면서 (BEFORE_COMMIT 핸들러 + 추가 INSERT) 드러난 셈이다. <br>
-
-# 한 일 6 — 컨슈머 멱등성도 같이 도입
-원래는 컨슈머 멱등성을 7단계로 미루려 했었다. <br>
-*우리 K6 시나리오는 단일 컨슈머 인스턴스라 리밸런스가 안 일어나니까* 라는 이유였는데, 복기하다가 이 판단이 *틀렸음* 을 깨달았다. <br>
-
-리밸런스가 없어도 *프로세스 크래시 타이밍* 만으로 중복은 발생한다.
-1. 릴레이가 Kafka에 보낸 후 `markPublished` commit 전 크래시 → 같은 메시지 재발행
-2. 컨슈머가 비즈니스 처리 후 offset commit 전 크래시 → 같은 메시지 재처리
-
-즉 *단일 인스턴스에서도 운영 중에는 결국 발생할* 정확성 위험이었다. <br>
-측정 후 결정할 사안이 아니라 *이미 알고 있는 문제* 였다. <br>
-다른 미룬 항목들(async batch, 다중 인스턴스 락 전략 등)이 *측정 후 결정* 이었던 것과 본질적으로 다른 종류라, 5단계 마무리에 포함시키기로 했다. <br>
-
-도입한 것:
-1. 이벤트에 `eventId` (UUID) 필드 + 편의 생성자 — 기존 호출부 변경 없이 자동 생성.
-2. `infra-notification`에 MySQL DB 추가 + `processed_event` 테이블.
-3. 3개 컨슈머 모두 `@Transactional` + dedup 체크 패턴.
-
-```java
-@KafkaListener(...)
-@Transactional
-public void handle(String json) {
-    Event event = objectMapper.readValue(json, ...);
-    if (processedEventRepository.existsById(event.eventId())) return;
-
-    notificationSender.send(...);
-    processedEventRepository.save(new ProcessedEvent(event.eventId()));
-}
-```
-
-비즈니스 변경과 dedup INSERT가 같은 트랜잭션에 묶여서, *비즈니스만 됐는데 dedup 마커는 없음* 같은 상태가 구조적으로 불가능해진다. <br>
-
-다만 한계도 있다. <br>
-`notificationSender.send()` 같은 *외부 시스템 호출* 은 여전히 트랜잭션 밖이라, send → commit 사이 윈도우에 크래시하면 외부 호출은 중복될 수 있다. <br>
-*DB 변경은 한 번만, 외부 호출은 최소 한 번* 까지가 우리가 보장할 수 있는 한계다. <br>
-완전한 한 번 보장은 외부 시스템 측에서도 멱등성을 보장해줘야 가능한데, 그건 분산 시스템의 본질적 한계라 *발행 + 컨슈머 측 dedup* 까지가 우리 책임의 끝이다. <br>
+이 race는 *어떤 메시징 백본을 쓰든 잠재해 있던 결함* 이다. 부하가 낮을 땐 우연히 안 터졌을 뿐이고, 트랜잭션 path가 길어지면 드러난다. 그래서 백본을 되돌려도 이 수정만은 남겨두는 게 맞다. <br>
 
 # 검증
-K6 회귀를 두 단계로 나눠 측정했다. <br>
-sync RPC + Outbox + Kafka 까지만 도입한 *중간 시점* 과, 컨슈머 멱등성까지 도입한 *최종 시점* 의 비용을 분리해서 보기 위해서다. <br>
+되돌리기 전, Kafka + Outbox + 멱등성을 다 갖춘 상태의 K6 측정값을 먼저 남겨둔다 (그 비용이 결정의 근거였으니까). <br>
 
 | 단계 | 처리량 | p95 | 에러 |
 |---|---|---|---|
 | 4단계 (gateway) | 449/s | 494ms | 0% |
 | 5단계 중간 (sync RPC + Outbox + Kafka) | 100/s | 2.5s | 0% |
-| **5단계 최종 (+ 컨슈머 멱등성)** | **62/s** | **4.8s** | **0%** |
+| 5단계 (+ 컨슈머 멱등성) | 62/s | 4.8s | 0% |
 
 4단계 대비 응답 시간이 약 10배, 처리량이 약 7배 떨어졌다. <br>
-이게 비싸 보이는데, 이번 챕터에서 추가된 정합성/내구성 비용을 정량화한 결과는 다음과 같다.
-1. 동기 RPC — 매수 흐름에 `funds.debitKrw` + `funds.settle` 두 번의 HTTP hop 추가
-2. Outbox INSERT — 모든 이벤트 발행에 DB INSERT 한 번 추가
-3. Outbox 폴링 — SELECT FOR UPDATE, 다른 INSERT와 락 경합
-4. Kafka 발행 — relay → Kafka send (sync `.get()`)
-5. dedup 체크 — 컨슈머마다 SELECT + INSERT 한 번씩 추가 (notification-db 인스턴스도 신규)
+추가된 비용을 분해하면 다음과 같다.
+1. 동기 RPC — 매수 흐름에 `funds.debitKrw` + `funds.settle` 두 번의 HTTP hop. *이건 정합성을 위한 비용이라 유지된다.*
+2. Outbox INSERT + 폴링 — 모든 발행에 DB INSERT, 릴레이의 SELECT FOR UPDATE. *되돌리며 사라짐.*
+3. dedup 체크 — 컨슈머마다 SELECT + INSERT. *되돌리며 사라짐.*
 
-각 비용은 작지만 한 요청에 4~5번 곱해지면서 누적된다. <br>
-중간 → 최종 사이의 추가 비용(처리량 100 → 62/s) 은 거의 전부 *컨슈머 멱등성* 에서 왔다. notification 컨슈머가 메시지마다 SELECT + INSERT 를 추가로 하기 때문이다. <br>
-이 *측정값* 은 7단계 운영 이슈에서 풀어나갈 출발점이 된다 (HikariCP 풀 튜닝, Kafka 비동기 발행, outbox 폴링 주기, processed_event 인덱스 등). <br>
+처리량 100 → 62/s 하락은 거의 전부 *컨슈머 멱등성* 에서 왔는데, 그 멱등성이 지키던 게 *알림 중복 방지* 였다. <br>
+*알림이 어쩌다 한 번 더 가는 걸 막으려고 처리량의 38%를 지불* 하고 있던 셈이고, 이 수치가 되돌림 결정을 뒷받침했다. <br>
 
-파티션 키 동작 검증:
-- `notification.requested` 토픽: 8 파티션 자동 생성 ✓
-- userId 키 기반 라우팅 — 같은 사용자는 같은 파티션으로 흐름 ✓
-- 3개 토픽 모두 1 컨슈머에 8 파티션씩 정상 할당 ✓
-
-# 의도적으로 미룬 것
-이 챕터에서 원래 계획에 있었지만 7단계로 미룬 것들:
-- 다중 인스턴스 락 전략 (NOWAIT vs SKIP LOCKED) — 다중 인스턴스로 띄워봐야 측정 가능
-- 비동기 Kafka 발행 — 진짜 병목인지 측정 후 결정
-- 다중 릴레이 — 비동기 발행 적용 후에도 부족하면 그때
-- retry topic / DLQ / 회로차단기 — 운영 단계의 내구성 영역
-
-각 항목의 측정 계획은 [발행 보장 — 미뤄둔 결정들](../발행%20보장%20—%20미뤄둔%20결정들.md) 문서에 정리했다. <br>
+되돌린 뒤(sync RPC는 유지, 메시징은 RabbitMQ)의 회귀 측정과 순서 측정 raw 데이터는 별도 측정 노트로 보관했다. <br>
 
 # 결론
-> 이 챕터의 본질은 *"Kafka로 갈아끼우기"* 가 아니라 **"이벤트 만능에서 적재적소로 — 정합성 도메인을 동기로 되돌리고, 진짜 비동기인 것들만 Kafka 위에 Outbox로 보장한다"** 이다. <br>
-> 이 깨달음을 *코드까지 적용한* 시점이 6단계(k8s/HPA, 자원 격리) 들어가기 직전이라는 게 결정적이었다. 더 늦으면 마이그레이션 비용이 비례 이상으로 증가한다. <br>
-> 응답 시간 저하가 의미 있는 수준이지만, 그건 *정합성을 사기 위한 비용* 이다. 7단계의 튜닝 출발점이 된다.
+> 이 챕터는 두 개의 판단으로 이뤄져 있다. <br>
+> 첫째, **"이벤트 만능에서 적재적소로"** — 정합성이 중요한 매수/매도/입출금 승인을 *동기로 되돌렸다*. 이건 유지된다. <br>
+> 둘째, **"근거 없이 도입한 Kafka를 측정하고 되돌렸다"** — 순서 보장이라는 명분으로 Kafka를 도입했지만, 측정해 보니 그 순서가 우리 시스템(비동기는 알림뿐)에는 실질적 가치가 없었다. RabbitMQ로 돌아가고, Kafka·Outbox·dedup을 *fan-out 요구가 생기는 시점* 으로 미뤘다. <br>
+> 5단계의 나는 *Kafka가 옳다* 고 믿고 도입했고, 6단계 직전의 나는 *측정으로 그 믿음을 검증* 해 되돌렸다. 기술을 "있어 보여서"가 아니라 "필요해서, 데이터로" 쓰는 것 — 이 챕터가 남기는 건 그 판단의 과정이다.
