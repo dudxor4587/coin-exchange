@@ -1,0 +1,37 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: gateway-config
+  namespace: coin-exchange
+data:
+  application.yml: |
+    spring:
+      application:
+        name: gateway
+      cloud:
+        gateway:
+          routes:
+            - id: user-service
+              uri: http://user:8082
+              predicates:
+                - Path=/api/users/**
+            - id: trading-service
+              uri: http://trading:8084
+              predicates:
+                - Path=/api/orders/**,/api/trades/**
+            - id: funds-service
+              uri: http://funds:8083
+              predicates:
+                - Path=/api/wallets/**,/api/deposits/**,/api/withdraws/**,/admin/deposits/**,/admin/withdraws/**
+
+    server:
+      port: 8080
+
+    management:
+      endpoints:
+        web:
+          exposure:
+            include: health,info,gateway
+
+    jwt:
+      secret: dev-secret-change-me-this-must-be-long-enough-for-hs256-algorithm
