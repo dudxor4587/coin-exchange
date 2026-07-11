@@ -1,6 +1,6 @@
-package com.coinexchange.order.application;
+package com.coinexchange.matching.application;
 
-import com.coinexchange.order.domain.repository.RedisOrderBookRepository;
+import com.coinexchange.matching.domain.repository.RedisOrderBookRepository;
 import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.Timer;

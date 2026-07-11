@@ -9,6 +9,7 @@ import org.springframework.scheduling.annotation.EnableScheduling;
 @SpringBootApplication(scanBasePackages = {
         "com.coinexchange.trading",
         "com.coinexchange.order",
+        "com.coinexchange.matching",
         "com.coinexchange.trade",
         "com.coinexchange.coin",
         "com.coinexchange.common"

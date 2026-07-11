@@ -1,8 +1,8 @@
 package com.coinexchange.trading.application;
 
-import com.coinexchange.order.application.MatchingEngineServiceWithRedis;
-import com.coinexchange.order.application.OrderBookService;
-import com.coinexchange.order.infra.RedisOrderIdGenerator;
+import com.coinexchange.matching.application.MatchingEngineServiceWithRedis;
+import com.coinexchange.matching.application.OrderBookService;
+import com.coinexchange.matching.infra.RedisOrderIdGenerator;
 import com.coinexchange.events.order.OrderPlacedEvent;
 import com.coinexchange.trading.infra.FundsClient;
 import com.coinexchange.trading.infra.OrderLogPublisher;

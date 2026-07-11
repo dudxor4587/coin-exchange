@@ -1,35 +1,23 @@
-package com.coinexchange.order.domain;
+package com.coinexchange.matching.domain;
 
-import com.coinexchange.common.domain.BaseTimeEntity;
-import jakarta.persistence.*;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
 import java.math.BigDecimal;
 
-@Entity
+// 매칭엔진의 작업 상태. Redis 해시로만 저장되며 DB 엔티티가 아니다(진실은 durable 로그).
 @Getter
 @NoArgsConstructor
-public class OrderBook extends BaseTimeEntity {
+public class OrderBook {
 
-    @Id
     private Long id;
-
-    @Enumerated(EnumType.STRING)
     private Status status;
-
     private Long coinId;
-
-    @Enumerated(EnumType.STRING)
     private Type type;
-
     private BigDecimal price;
-
     private Long remainingAmount;
-
     private Long userId;
-
     private Long orderId;
 
     public enum Type {

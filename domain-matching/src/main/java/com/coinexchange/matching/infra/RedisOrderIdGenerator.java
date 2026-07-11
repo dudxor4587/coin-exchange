@@ -1,4 +1,4 @@
-package com.coinexchange.order.infra;
+package com.coinexchange.matching.infra;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.redis.core.RedisTemplate;

@@ -1,7 +1,7 @@
-package com.coinexchange.order.application;
+package com.coinexchange.matching.application;
 
-import com.coinexchange.order.domain.OrderBook;
-import com.coinexchange.order.domain.repository.RedisOrderBookRepository;
+import com.coinexchange.matching.domain.OrderBook;
+import com.coinexchange.matching.domain.repository.RedisOrderBookRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;

@@ -1,7 +1,7 @@
-package com.coinexchange.order.infra.Impl;
+package com.coinexchange.matching.infra.Impl;
 
-import com.coinexchange.order.domain.OrderBook;
-import com.coinexchange.order.domain.repository.RedisOrderBookRepository;
+import com.coinexchange.matching.domain.OrderBook;
+import com.coinexchange.matching.domain.repository.RedisOrderBookRepository;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.data.redis.core.RedisTemplate;
@@ -11,7 +11,6 @@ import org.springframework.scripting.support.ResourceScriptSource;
 import org.springframework.stereotype.Repository;
 
 import java.io.IOException;
-import java.math.BigDecimal;
 import java.util.*;
 
 @Repository
@@ -45,25 +44,6 @@ public class RedisOrderBookRepositoryImpl implements RedisOrderBookRepository {
         String priceSetKey = "orderbook:" + order.getType().name() + ":" + order.getPrice();
         redisTemplate.opsForSet().add(priceSetKey, order.getId().toString());
         redisTemplate.opsForSet().add("prices:" + order.getType().name(), order.getPrice().toString());
-    }
-
-    @Override
-    public Optional<OrderBook> findById(Long orderId) {
-        String key = "orderbook:" + orderId;
-        Map<Object, Object> map = redisTemplate.opsForHash().entries(key);
-        if (map.isEmpty()) return Optional.empty();
-
-        OrderBook orderbook = OrderBook.builder()
-                .id(Long.valueOf((String) map.get("id")))
-                .userId(Long.valueOf((String) map.get("userId")))
-                .coinId(Long.valueOf((String) map.get("coinId")))
-                .price(new BigDecimal((String) map.get("price")))
-                .remainingAmount(Long.valueOf((String) map.get("remainingAmount")))
-                .orderId(Long.valueOf((String) map.get("orderId")))
-                .type(OrderBook.Type.valueOf((String) map.get("type")))
-                .build();
-
-        return Optional.of(orderbook);
     }
 
     @Override
