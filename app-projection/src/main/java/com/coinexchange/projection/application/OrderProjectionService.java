@@ -1,4 +1,4 @@
-package com.coinexchange.trading.application;
+package com.coinexchange.projection.application;
 
 import com.coinexchange.events.notification.NotificationRequestedEvent;
 import com.coinexchange.order.application.OrderService;
@@ -6,8 +6,8 @@ import com.coinexchange.order.domain.Order;
 import com.coinexchange.trade.application.TradeService;
 import com.coinexchange.events.order.OrderPlacedEvent;
 import com.coinexchange.events.order.TradeExecutedEvent;
-import com.coinexchange.trading.infra.projection.ProcessedEvent;
-import com.coinexchange.trading.infra.projection.ProcessedEventRepository;
+import com.coinexchange.projection.infra.projection.ProcessedEvent;
+import com.coinexchange.projection.infra.projection.ProcessedEventRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.ApplicationEventPublisher;

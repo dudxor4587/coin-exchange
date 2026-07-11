@@ -1,4 +1,4 @@
-package com.coinexchange.trading.infra.projection;
+package com.coinexchange.projection.infra.projection;
 
 import org.springframework.data.jpa.repository.JpaRepository;
 

@@ -4,6 +4,7 @@ COPY gradle gradle
 COPY gradlew settings.gradle build.gradle ./
 COPY app-funds/build.gradle app-funds/
 COPY app-trading/build.gradle app-trading/
+COPY app-projection/build.gradle app-projection/
 COPY events-contract/build.gradle events-contract/
 COPY common-core/build.gradle common-core/
 COPY common-auth/build.gradle common-auth/
@@ -16,19 +17,17 @@ COPY domain-trade/build.gradle domain-trade/
 COPY domain-order/build.gradle domain-order/
 COPY domain-matching/build.gradle domain-matching/
 COPY domain-wallet/build.gradle domain-wallet/
-RUN chmod +x gradlew && ./gradlew :app-trading:dependencies --no-daemon || true
+RUN chmod +x gradlew && ./gradlew :app-projection:dependencies --no-daemon || true
 COPY events-contract/src events-contract/src
 COPY common-core/src common-core/src
-COPY common-auth/src common-auth/src
-COPY domain-coin/src domain-coin/src
 COPY domain-order/src domain-order/src
-COPY domain-matching/src domain-matching/src
-COPY app-trading/src app-trading/src
-RUN ./gradlew :app-trading:bootJar --no-daemon -x test
+COPY domain-trade/src domain-trade/src
+COPY app-projection/src app-projection/src
+RUN ./gradlew :app-projection:bootJar --no-daemon -x test
 
 FROM eclipse-temurin:17-jre
 WORKDIR /app
 RUN apt-get update && apt-get install -y --no-install-recommends curl && rm -rf /var/lib/apt/lists/*
-COPY --from=build /app/app-trading/build/libs/*.jar app.jar
-EXPOSE 8084
+COPY --from=build /app/app-projection/build/libs/*.jar app.jar
+EXPOSE 8085
 ENTRYPOINT ["java", "-jar", "app.jar"]

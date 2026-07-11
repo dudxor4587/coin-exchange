@@ -49,8 +49,6 @@ services:
         condition: service_healthy
       coin-exchange-redis:
         condition: service_healthy
-      coin-exchange-rabbitmq:
-        condition: service_healthy
       coin-exchange-kafka:
         condition: service_healthy
       coin-exchange-funds:
@@ -58,6 +56,29 @@ services:
     restart: always
     healthcheck:
       test: ["CMD-SHELL", "curl -fs http://localhost:8084/actuator/health || exit 1"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+      start_period: 15s
+
+  # 주문 durable 로그(Kafka)를 읽어 DB에 반영하는 컨슈머. trading에서 분리해 hot path 자원 경쟁을 없앤다.
+  coin-exchange-projection:
+    build:
+      context: .
+      dockerfile: Dockerfile.projection
+    container_name: coin-exchange-projection
+    expose:
+      - "8085"
+    depends_on:
+      coin-exchange-trading-db:
+        condition: service_healthy
+      coin-exchange-rabbitmq:
+        condition: service_healthy
+      coin-exchange-kafka:
+        condition: service_healthy
+    restart: always
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fs http://localhost:8085/actuator/health || exit 1"]
       interval: 5s
       timeout: 3s
       retries: 20

@@ -1,4 +1,4 @@
-package com.coinexchange.trading.infra.projection;
+package com.coinexchange.projection.infra.projection;
 
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;

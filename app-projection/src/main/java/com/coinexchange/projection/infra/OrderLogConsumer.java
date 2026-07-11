@@ -1,6 +1,6 @@
-package com.coinexchange.trading.infra;
+package com.coinexchange.projection.infra;
 
-import com.coinexchange.trading.application.OrderProjectionService;
+import com.coinexchange.projection.application.OrderProjectionService;
 import com.coinexchange.events.order.OrderLogChannel;
 import com.coinexchange.events.order.OrderPlacedEvent;
 import com.coinexchange.events.order.TradeExecutedEvent;
