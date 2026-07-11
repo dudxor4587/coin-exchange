@@ -1,8 +1,8 @@
 package com.coinexchange.trading.infra;
 
 import com.coinexchange.trading.application.OrderProjectionService;
-import com.coinexchange.trading.application.event.OrderPlacedEvent;
-import com.coinexchange.trading.application.event.TradeExecutedEvent;
+import com.coinexchange.events.order.OrderPlacedEvent;
+import com.coinexchange.events.order.TradeExecutedEvent;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;

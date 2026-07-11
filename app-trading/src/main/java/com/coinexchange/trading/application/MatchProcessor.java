@@ -1,6 +1,6 @@
 package com.coinexchange.trading.application;
 
-import com.coinexchange.trading.application.event.TradeExecutedEvent;
+import com.coinexchange.events.order.TradeExecutedEvent;
 import com.coinexchange.trading.infra.FundsClient;
 import com.coinexchange.trading.infra.OrderLogPublisher;
 import lombok.RequiredArgsConstructor;

@@ -4,8 +4,8 @@ import com.coinexchange.events.notification.NotificationRequestedEvent;
 import com.coinexchange.order.application.OrderService;
 import com.coinexchange.order.domain.Order;
 import com.coinexchange.trade.application.TradeService;
-import com.coinexchange.trading.application.event.OrderPlacedEvent;
-import com.coinexchange.trading.application.event.TradeExecutedEvent;
+import com.coinexchange.events.order.OrderPlacedEvent;
+import com.coinexchange.events.order.TradeExecutedEvent;
 import com.coinexchange.trading.infra.projection.ProcessedEvent;
 import com.coinexchange.trading.infra.projection.ProcessedEventRepository;
 import lombok.RequiredArgsConstructor;
@@ -38,7 +38,7 @@ public class OrderProjectionService {
         if (processedEventRepository.existsById(event.eventId())) {
             return;
         }
-        if (event.type() == Order.Type.BUY) {
+        if ("BUY".equals(event.side())) {
             orderService.createBuyOrder(event.orderId(), event.coinId(), event.price(),
                     event.amount(), event.userId(), event.lockedFunds());
         } else {

@@ -1,12 +1,11 @@
-package com.coinexchange.trading.application.event;
+package com.coinexchange.events.order;
 
 import java.math.BigDecimal;
 import java.util.UUID;
 
 /**
  * 매칭이 체결됐음을 durable 로그(Kafka)에 남기는 이벤트.
- * hot path에서는 정산(settle)까지만 동기로 끝내고,
- * Trade INSERT / Order fill / 알림은 컨슈머가 projection한다.
+ * 매칭엔진(producer)과 projection(consumer)이 공유하는 wire 계약이다.
  * eventId는 재소비 시 중복 반영을 막는 dedup 키다.
  */
 public record TradeExecutedEvent(

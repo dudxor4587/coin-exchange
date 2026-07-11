@@ -1,7 +1,7 @@
 package com.coinexchange.trading.infra;
 
-import com.coinexchange.trading.application.event.OrderPlacedEvent;
-import com.coinexchange.trading.application.event.TradeExecutedEvent;
+import com.coinexchange.events.order.OrderPlacedEvent;
+import com.coinexchange.events.order.TradeExecutedEvent;
 import com.coinexchange.trading.config.KafkaTopicConfig;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;

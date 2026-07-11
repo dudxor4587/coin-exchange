@@ -4,7 +4,7 @@ import com.coinexchange.order.application.MatchingEngineServiceWithRedis;
 import com.coinexchange.order.application.OrderBookService;
 import com.coinexchange.order.domain.Order;
 import com.coinexchange.order.infra.RedisOrderIdGenerator;
-import com.coinexchange.trading.application.event.OrderPlacedEvent;
+import com.coinexchange.events.order.OrderPlacedEvent;
 import com.coinexchange.trading.infra.FundsClient;
 import com.coinexchange.trading.infra.OrderLogPublisher;
 import io.micrometer.core.instrument.MeterRegistry;
@@ -60,7 +60,7 @@ public class OrderFlowService {
 
         Long orderId = timed("nextId", orderIdGenerator::nextId);
         timed("appendLog", () -> orderLogPublisher.appendOrderPlaced(new OrderPlacedEvent(
-                orderId, coinId, price, amount, userId, Order.Type.BUY, lockedFunds)));
+                orderId, coinId, price, amount, userId, "BUY", lockedFunds)));
 
         Order order = buildOrder(orderId, coinId, price, amount, userId, Order.Type.BUY, lockedFunds);
         timed("placeOrderBook", () -> orderBookService.placeOrder(order));
@@ -74,7 +74,7 @@ public class OrderFlowService {
 
         Long orderId = timed("nextId", orderIdGenerator::nextId);
         timed("appendLog", () -> orderLogPublisher.appendOrderPlaced(new OrderPlacedEvent(
-                orderId, coinId, price, amount, userId, Order.Type.SELL, null)));
+                orderId, coinId, price, amount, userId, "SELL", null)));
 
         Order order = buildOrder(orderId, coinId, price, amount, userId, Order.Type.SELL, null);
         timed("placeOrderBook", () -> orderBookService.placeOrder(order));
