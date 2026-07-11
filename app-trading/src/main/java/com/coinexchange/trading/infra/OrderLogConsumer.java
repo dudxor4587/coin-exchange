@@ -1,6 +1,7 @@
 package com.coinexchange.trading.infra;
 
 import com.coinexchange.trading.application.OrderProjectionService;
+import com.coinexchange.events.order.OrderLogChannel;
 import com.coinexchange.events.order.OrderPlacedEvent;
 import com.coinexchange.events.order.TradeExecutedEvent;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -13,8 +14,7 @@ import org.springframework.stereotype.Component;
 
 import java.nio.charset.StandardCharsets;
 
-import static com.coinexchange.trading.config.KafkaTopicConfig.ORDER_LOG_TOPIC;
-import static com.coinexchange.trading.infra.OrderLogPublisher.*;
+import static com.coinexchange.events.order.OrderLogChannel.*;
 
 /**
  * 주문 durable 로그(Kafka)를 읽어 DB(사본)에 projection한다.
@@ -31,7 +31,7 @@ public class OrderLogConsumer {
     private final OrderProjectionService projectionService;
     private final ObjectMapper objectMapper;
 
-    @KafkaListener(topics = ORDER_LOG_TOPIC, groupId = "order-projection")
+    @KafkaListener(topics = TOPIC, groupId = "order-projection")
     public void consume(ConsumerRecord<String, String> record, Acknowledgment ack) throws Exception {
         String eventType = header(record);
 

@@ -1,5 +1,6 @@
 package com.coinexchange.trading.config;
 
+import com.coinexchange.events.order.OrderLogChannel;
 import org.apache.kafka.clients.admin.NewTopic;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -7,8 +8,6 @@ import org.springframework.kafka.config.TopicBuilder;
 
 @Configuration
 public class KafkaTopicConfig {
-
-    public static final String ORDER_LOG_TOPIC = "order.log";
 
     /**
      * 주문 durable 로그는 파티션을 1개로 둔다.
@@ -19,7 +18,7 @@ public class KafkaTopicConfig {
      */
     @Bean
     public NewTopic orderLogTopic() {
-        return TopicBuilder.name(ORDER_LOG_TOPIC)
+        return TopicBuilder.name(OrderLogChannel.TOPIC)
                 .partitions(1)
                 .replicas(1)
                 .build();

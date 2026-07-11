@@ -1,8 +1,8 @@
 package com.coinexchange.trading.infra;
 
+import com.coinexchange.events.order.OrderLogChannel;
 import com.coinexchange.events.order.OrderPlacedEvent;
 import com.coinexchange.events.order.TradeExecutedEvent;
-import com.coinexchange.trading.config.KafkaTopicConfig;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
@@ -30,27 +30,23 @@ import java.util.concurrent.ExecutionException;
 @Slf4j
 public class OrderLogPublisher {
 
-    public static final String HEADER_EVENT_TYPE = "eventType";
-    public static final String TYPE_ORDER_PLACED = "ORDER_PLACED";
-    public static final String TYPE_TRADE_EXECUTED = "TRADE_EXECUTED";
-
     private final KafkaTemplate<String, String> kafkaTemplate;
     private final ObjectMapper objectMapper;
 
     public void appendOrderPlaced(OrderPlacedEvent event) {
-        append(TYPE_ORDER_PLACED, event);
+        append(OrderLogChannel.TYPE_ORDER_PLACED, event);
     }
 
     public void appendTradeExecuted(TradeExecutedEvent event) {
-        append(TYPE_TRADE_EXECUTED, event);
+        append(OrderLogChannel.TYPE_TRADE_EXECUTED, event);
     }
 
     private void append(String eventType, Object payload) {
         try {
             String json = objectMapper.writeValueAsString(payload);
             ProducerRecord<String, String> record = new ProducerRecord<>(
-                    KafkaTopicConfig.ORDER_LOG_TOPIC, null, null, json);
-            record.headers().add(new RecordHeader(HEADER_EVENT_TYPE,
+                    OrderLogChannel.TOPIC, null, null, json);
+            record.headers().add(new RecordHeader(OrderLogChannel.HEADER_EVENT_TYPE,
                     eventType.getBytes(StandardCharsets.UTF_8)));
 
             // 동기 append — 브로커 저장 확인까지 대기
