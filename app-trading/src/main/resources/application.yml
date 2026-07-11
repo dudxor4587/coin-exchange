@@ -24,6 +24,23 @@ spring:
     port: 5672
     username: guest
     password: guest
+  kafka:
+    bootstrap-servers: coin-exchange-kafka:9092
+    producer:
+      # durable 로그: 모든 복제본에 저장 확인 후 ack (단일 브로커라 실질 acks=1)
+      acks: all
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.apache.kafka.common.serialization.StringSerializer
+    consumer:
+      group-id: order-projection
+      # 크래시 후 재시작 시 커밋한 offset부터 재개 → 유실 없이 이어서 projection
+      auto-offset-reset: earliest
+      enable-auto-commit: false
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+    listener:
+      # 컨슈머가 DB에 반영을 마친 뒤에 offset 커밋 → at-least-once (유실 방지)
+      ack-mode: manual
 
 server:
   port: 8084

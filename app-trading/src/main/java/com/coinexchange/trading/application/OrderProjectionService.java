@@ -6,43 +6,38 @@ import com.coinexchange.order.domain.Order;
 import com.coinexchange.trade.application.TradeService;
 import com.coinexchange.trading.application.event.OrderPlacedEvent;
 import com.coinexchange.trading.application.event.TradeExecutedEvent;
+import com.coinexchange.trading.infra.projection.ProcessedEvent;
+import com.coinexchange.trading.infra.projection.ProcessedEventRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.ApplicationEventPublisher;
-import org.springframework.context.event.EventListener;
-import org.springframework.scheduling.annotation.Async;
-import org.springframework.stereotype.Component;
+import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 
 /**
- * Redis(진실)에서 일어난 일을 DB(사본)에 비동기로 반영하는 projector.
+ * durable 로그(Kafka)의 이벤트를 DB(사본)에 반영한다.
  *
- * 주문 접수와 체결의 진실은 이미 Redis OrderBook과 매칭 Lua가 갖고 있다.
- * DB의 Order/Trade는 그 결과를 기록하는 사본이므로, hot path에서 동기로
- * 기다릴 이유가 없다 — 측정에서 createOrder(동기 DB INSERT)가 전체의 76%였다.
- *
- * projectionExecutor는 단일 스레드다. 발행 순서 = 처리 순서가 보장되어,
- * 주문 INSERT가 그 주문의 체결 fill보다 반드시 먼저 실행된다.
- *
- * 알림 발행이 여기 있는 이유: NotificationRequestedEventHandler가
- * AFTER_COMMIT 리스너라 트랜잭션 밖에서 발행하면 조용히 버려진다.
- * projection 트랜잭션 안에서 발행해 "기록이 commit된 후 알림"이 되게 한다.
+ * dedup 마커 INSERT와 실제 반영을 한 트랜잭션에 묶는다.
+ * at-least-once로 같은 이벤트가 재전달돼도 dedup 체크로 한 번만 반영된다 —
+ * 재소비 시 fillOrder가 두 번 더해지는 것 같은 오염을 막는다.
  */
-@Component
+@Service
 @RequiredArgsConstructor
 @Slf4j
-public class OrderProjectionHandler {
+public class OrderProjectionService {
 
     private final OrderService orderService;
     private final TradeService tradeService;
+    private final ProcessedEventRepository processedEventRepository;
     private final ApplicationEventPublisher eventPublisher;
 
-    @Async("projectionExecutor")
-    @EventListener
     @Transactional
-    public void on(OrderPlacedEvent event) {
+    public void applyOrderPlaced(OrderPlacedEvent event) {
+        if (processedEventRepository.existsById(event.eventId())) {
+            return;
+        }
         if (event.type() == Order.Type.BUY) {
             orderService.createBuyOrder(event.orderId(), event.coinId(), event.price(),
                     event.amount(), event.userId(), event.lockedFunds());
@@ -50,18 +45,19 @@ public class OrderProjectionHandler {
             orderService.createSellOrder(event.orderId(), event.coinId(), event.price(),
                     event.amount(), event.userId());
         }
+        processedEventRepository.save(new ProcessedEvent(event.eventId()));
     }
 
-    @Async("projectionExecutor")
-    @EventListener
     @Transactional
-    public void on(TradeExecutedEvent event) {
+    public void applyTradeExecuted(TradeExecutedEvent event) {
+        if (processedEventRepository.existsById(event.eventId())) {
+            return;
+        }
         BigDecimal price = event.price();
         Long matchedAmount = event.matchedAmount();
 
         tradeService.createTrade(event.buyOrderId(), event.sellOrderId(),
                 event.coinId(), matchedAmount, price);
-
         orderService.fillOrder(event.buyOrderId(), matchedAmount);
         orderService.fillOrder(event.sellOrderId(), matchedAmount);
 
@@ -73,5 +69,7 @@ public class OrderProjectionHandler {
                 event.sellerId(),
                 String.format("매도 체결: 코인 ID=%d, 수량=%d, 가격=%s", event.coinId(), matchedAmount, price)
         ));
+
+        processedEventRepository.save(new ProcessedEvent(event.eventId()));
     }
 }
