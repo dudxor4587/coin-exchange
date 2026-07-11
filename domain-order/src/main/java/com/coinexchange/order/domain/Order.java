@@ -5,6 +5,7 @@ import jakarta.persistence.*;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import org.springframework.data.domain.Persistable;
 
 import java.math.BigDecimal;
 
@@ -12,10 +13,12 @@ import java.math.BigDecimal;
 @Getter
 @NoArgsConstructor
 @Table(name = "`order`")
-public class Order extends BaseTimeEntity {
+public class Order extends BaseTimeEntity implements Persistable<Long> {
 
+    // id는 DB auto-increment가 아니라 Redis INCR로 애플리케이션이 채번한다.
+    // 주문 저장(DB)이 hot path에서 비동기로 빠지면서, OrderBook(Redis) 등록 시점에
+    // DB 없이 id가 필요해졌기 때문이다.
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
     private Long userId;
@@ -49,7 +52,8 @@ public class Order extends BaseTimeEntity {
     }
 
     @Builder
-    public Order(Long userId,
+    public Order(Long id,
+                 Long userId,
                  Long coinId,
                  BigDecimal price,
                  Long orderAmount,
@@ -57,6 +61,7 @@ public class Order extends BaseTimeEntity {
                  Type type,
                  BigDecimal lockedFunds,
                  Status status) {
+        this.id = id;
         this.userId = userId;
         this.coinId = coinId;
         this.price = price;
@@ -83,5 +88,12 @@ public class Order extends BaseTimeEntity {
 
     private boolean isFilled() {
         return this.filledAmount.equals(this.orderAmount);
+    }
+
+    // 채번된 id를 가진 새 엔티티를 save()할 때 Spring Data JPA가 merge(SELECT 후 INSERT)로
+    // 빠지지 않도록, 아직 auditing이 찍히지 않은 엔티티를 신규로 판별한다.
+    @Override
+    public boolean isNew() {
+        return getCreatedAt() == null;
     }
 }

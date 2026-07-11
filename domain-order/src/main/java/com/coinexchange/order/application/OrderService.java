@@ -20,8 +20,9 @@ public class OrderService {
     private final OrderRepository orderRepository;
 
     @Transactional
-    public Order createBuyOrder(Long coinId, BigDecimal price, Long amount, Long userId, BigDecimal lockedFunds) {
+    public Order createBuyOrder(Long id, Long coinId, BigDecimal price, Long amount, Long userId, BigDecimal lockedFunds) {
         Order order = Order.builder()
+                .id(id)
                 .coinId(coinId)
                 .price(price)
                 .orderAmount(amount)
@@ -35,8 +36,9 @@ public class OrderService {
     }
 
     @Transactional
-    public Order createSellOrder(Long coinId, BigDecimal price, Long amount, Long userId) {
+    public Order createSellOrder(Long id, Long coinId, BigDecimal price, Long amount, Long userId) {
         Order order = Order.builder()
+                .id(id)
                 .coinId(coinId)
                 .price(price)
                 .orderAmount(amount)
