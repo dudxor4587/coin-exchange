@@ -1,11 +1,9 @@
 package com.coinexchange.order.application;
 
-import com.coinexchange.order.domain.Order;
-import com.coinexchange.order.event.OrderBookRollbackEvent;
+import java.math.BigDecimal;
 
 public interface OrderBookService {
 
-    void placeOrder(Order order);
-
-    void rollbackOrderBook(OrderBookRollbackEvent event);
+    // 매칭엔진은 DB Order 엔티티를 모른다 — 주문의 raw 필드만 받는다.
+    void placeOrder(Long orderId, Long coinId, BigDecimal price, Long amount, String side, Long userId);
 }

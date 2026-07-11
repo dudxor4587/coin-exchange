@@ -2,7 +2,6 @@ package com.coinexchange.trading.application;
 
 import com.coinexchange.order.application.MatchingEngineServiceWithRedis;
 import com.coinexchange.order.application.OrderBookService;
-import com.coinexchange.order.domain.Order;
 import com.coinexchange.order.infra.RedisOrderIdGenerator;
 import com.coinexchange.events.order.OrderPlacedEvent;
 import com.coinexchange.trading.infra.FundsClient;
@@ -62,8 +61,7 @@ public class OrderFlowService {
         timed("appendLog", () -> orderLogPublisher.appendOrderPlaced(new OrderPlacedEvent(
                 orderId, coinId, price, amount, userId, "BUY", lockedFunds)));
 
-        Order order = buildOrder(orderId, coinId, price, amount, userId, Order.Type.BUY, lockedFunds);
-        timed("placeOrderBook", () -> orderBookService.placeOrder(order));
+        timed("placeOrderBook", () -> orderBookService.placeOrder(orderId, coinId, price, amount, "BUY", userId));
 
         List<Map<String, Object>> matches = timed("match", matchingEngine::match);
         timed("processMatches", () -> processMatches(matches));
@@ -76,27 +74,10 @@ public class OrderFlowService {
         timed("appendLog", () -> orderLogPublisher.appendOrderPlaced(new OrderPlacedEvent(
                 orderId, coinId, price, amount, userId, "SELL", null)));
 
-        Order order = buildOrder(orderId, coinId, price, amount, userId, Order.Type.SELL, null);
-        timed("placeOrderBook", () -> orderBookService.placeOrder(order));
+        timed("placeOrderBook", () -> orderBookService.placeOrder(orderId, coinId, price, amount, "SELL", userId));
 
         List<Map<String, Object>> matches = timed("match", matchingEngine::match);
         timed("processMatches", () -> processMatches(matches));
-    }
-
-    private Order buildOrder(Long id, Long coinId, BigDecimal price, Long amount,
-                             Long userId, Order.Type type, BigDecimal lockedFunds) {
-        // OrderBook 등록용 임시 객체 — 영속화는 projector의 몫이다.
-        return Order.builder()
-                .id(id)
-                .coinId(coinId)
-                .price(price)
-                .orderAmount(amount)
-                .filledAmount(0L)
-                .lockedFunds(lockedFunds)
-                .type(type)
-                .userId(userId)
-                .status(Order.Status.PENDING)
-                .build();
     }
 
     private void processMatches(List<Map<String, Object>> matches) {
