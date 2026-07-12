@@ -40,7 +40,7 @@ coin-exchange/
 
 # events-contract의 의미
 분리 작업에서 가장 신중했던 부분은 이벤트 클래스의 위치였다. <br>
-도메인 모듈끼리 직접 이벤트 클래스를 import하면 모듈 간 결합이 그대로 남고, 결국 처음 의도한 *컴파일러가 결합을 강제하는* 효과가 흐려지기 때문이다. <br>
+도메인 모듈끼리 직접 이벤트 클래스를 import하면 모듈 간 결합이 그대로 남고, 결국 처음 의도한 컴파일러가 결합을 강제하는 효과가 흐려지기 때문이다. <br>
 
 `events-contract`는 그래서 **MSA 단계에서의 이벤트 계약 역할**을 미리 모듈화한 것이다. <br>
 지금은 같은 jar 안에서 Gradle 의존(`implementation project(':events-contract')`)으로 묶이지만, 프로세스 분리가 끝나면 이 모듈이 외부에 publish되는 라이브러리 (또는 Avro/Protobuf 스키마) 로 발전할 자리다. <br>
@@ -50,21 +50,21 @@ coin-exchange/
 
 # 후속 정비 — common-auth 분리
 5단계 마무리 시점에 한 가지 더 손을 댔다. <br>
-`common-core` 가 *security + jwt + web + jpa* 를 모두 `api` 의존으로 끌어당기는 구조였는데, 이게 가벼운 서비스 (notification) 에 자동설정 충돌을 만들었다. <br>
+`common-core` 가 security + jwt + web + jpa를 모두 `api` 의존으로 끌어당기는 구조였는데, 이게 가벼운 서비스 (notification) 에 자동설정 충돌을 만들었다. <br>
 2단계 회고에서도 메모만 남기고 미뤘던 자리였는데, 5단계에 컨슈머 멱등성을 도입하면서 같은 자리에 한 번 더 부딪혀 정리하기로 했다. <br>
 
-`common-core/.../auth/*` 10개 파일을 새 모듈 `common-auth/` 로 떼어내고, common-auth 에 *security + jwt + web* 의존을 두었다. <br>
-common-core 는 *jpa + web* 만 남겼다. <br>
+`common-core/.../auth/*` 10개 파일을 새 모듈 `common-auth/` 로 떼어내고, common-auth 에 security + jwt + web 의존을 두었다. <br>
+common-core 는 jpa + web만 남겼다. <br>
 auth 가 필요한 서비스 (user, funds, trading) 가 build.gradle 에 명시적으로 common-auth 를 추가하고, notification 은 추가하지 않는다. <br>
 
 효과는 단순했다. <br>
-notification 이 security 라이브러리 자체를 안 받게 되어, `NotificationServiceApplication` 의 *SecurityAutoConfiguration 등 4개 exclude 어노테이션* 이 사라졌다. <br>
-이 회피 코드는 *증상을 막던 것* 이지 *원인을 푼 것* 이 아니었는데, common-auth 분리로 원인 자체가 없어졌다. <br>
+notification 이 security 라이브러리 자체를 안 받게 되어, `NotificationServiceApplication` 의 SecurityAutoConfiguration 등 4개 exclude 어노테이션이 사라졌다. <br>
+이 회피 코드는 증상을 막던 것이지 원인을 푼 것이 아니었는데, common-auth 분리로 원인 자체가 없어졌다. <br>
 
 이건 1단계의 본질과 같은 작업이다. <br>
-*의존이 컴파일 시점에 강제* 되어 *진짜 분리 가능한 구조인지* 가 build.gradle 단계에서 드러나도록. <br>
+의존이 컴파일 시점에 강제 되어 진짜 분리 가능한 구조인지가 build.gradle 단계에서 드러나도록. <br>
 
 # 결론
 > 단일 프로세스를 유지한 채 모듈만 먼저 자른 이유는, 결합 문제와 분산 환경 문제를 같이 터트리지 않기 위해서였다. <br>
-> 모듈로 자르는 순간 의존 방향이 컴파일러에 강제되어, *진짜로 분리 가능한 구조인지* 가 빌드 단계에서 드러난다. <br>
-> 다음 챕터에서 진짜 프로세스 분리에 들어갈 텐데, 그때 발견될 문제가 *이 챕터에서 먼저 드러난 문제* 만큼 단순하면 1단계의 가치가 증명되는 셈이다.
+> 모듈로 자르는 순간 의존 방향이 컴파일러에 강제되어, 진짜로 분리 가능한 구조인지가 빌드 단계에서 드러난다. <br>
+> 다음 챕터에서 진짜 프로세스 분리에 들어갈 텐데, 그때 발견될 문제가 이 챕터에서 먼저 드러난 문제만큼 단순하면 1단계의 가치가 증명되는 셈이다.

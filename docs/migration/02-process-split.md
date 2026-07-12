@@ -10,7 +10,7 @@
 2. `order`와 `trade`는 매칭엔진과 Redis OrderBook을 공유한다. 분리하면 OrderBook이 프로세스 간 공유 상태가 되어 락/일관성 문제가 생긴다.
 3. `wallet`/`deposit`/`withdraw`는 셋 다 잔고 도메인이고, 3단계 DB 분리 시 같은 잔고 테이블을 공유한다.
 
-그래서 분리 단위를 *기능적 결합과 트랜잭션 경계 기준* 으로 다시 잡았다. <br>
+그래서 분리 단위를 기능적 결합과 트랜잭션 경계 기준으로 다시 잡았다. <br>
 
 | 서비스 | 도메인 |
 |---|---|
@@ -55,7 +55,7 @@
 처음에는 시더에 `SEED_BUYER_ID = 1L` 같은 상수를 박는 방식으로 가려 했다. <br>
 user-service가 먼저 시드해서 자동증가로 1, 2를 받을 거니까, 메인 app은 그걸 가정하고 wallet만 만든다는 식이다. <br>
 
-하지만 이건 *지금 단일 DB라는 임시 상태에 안주한 풀이* 였다. <br>
+하지만 이건 지금 단일 DB라는 임시 상태에 안주한 풀이였다. <br>
 3단계에서 DB가 분리되면 메인 app은 `User` 테이블을 물리적으로 못 본다. <br>
 하드코딩 ID로는 더 이상 못 가는 시점이 어차피 온다. <br>
 
@@ -72,10 +72,10 @@ user-service가 먼저 시드해서 자동증가로 1, 2를 받을 거니까, �
 안에 `FundsServiceApplication`, `application.yml`, `RabbitMQConfig`, 그리고 자체 `FundsSeeder`를 두었다. <br>
 
 ## 이벤트 브릿지의 위치 문제
-분리 직전 발견한 가장 큰 함정은 **Spring 이벤트 → RabbitMQ 브릿지 핸들러의 위치**였다. <br>
+분리 직전 가장 걸렸던 문제는 **Spring 이벤트 → RabbitMQ 브릿지 핸들러의 위치**였다. <br>
 
 `BuyOrderReadyEvent`는 `wallet` 도메인이 발행하는 이벤트지만, 그 브릿지(`@TransactionalEventListener`로 받아서 RabbitMQ로 보내는 핸들러)가 `domain-order` 안에 있었다. <br>
-단일 프로세스에선 같은 ApplicationContext라서 어디 있어도 잡혔지만, 분리하면 *발행자 프로세스에 브릿지가 없으면 이벤트가 RabbitMQ로 안 흐른다*. <br>
+단일 프로세스에선 같은 ApplicationContext라서 어디 있어도 잡혔지만, 분리하면 발행자 프로세스에 브릿지가 없으면 이벤트가 RabbitMQ로 안 흐른다. <br>
 
 브릿지를 발행자가 있는 도메인으로 옮겼다 — `BuyOrderReadyEventHandler`/`SellOrderReadyEventHandler`를 `domain-order/infra/publisher`에서 `domain-wallet/infra`로. <br>
 원칙은 단순하다 — **이벤트 브릿지는 발행자와 같은 모듈에 둔다**. <br>
@@ -115,7 +115,7 @@ K6 시나리오 회귀: 33,819 요청 / 0 에러. <br>
 이 파일은 매칭엔진이 Redis Lua 스크립트로 OrderBook을 다루는 데 쓰는데, 원래 `app/src/main/resources/scripts/`에 있었다. <br>
 분리 전엔 메인 app이 모든 도메인을 번들링했기 때문에 그 위치도 무관히 잡혔지만, 분리 후 trading-service의 jar에 그 파일이 들어가지 않으니 클래스패스에 없다. <br>
 
-파일을 `domain-order/src/main/resources/scripts/`로 옮겼다 — *사용하는 도메인이 자기 자원을 가지고 다니도록*. <br>
+파일을 `domain-order/src/main/resources/scripts/`로 옮겼다 — 사용하는 도메인이 자기 자원을 가지고 다니도록. <br>
 
 비슷한 원칙이 한 단계 앞 funds-service의 시더(자기 도메인 시드는 자기 서비스에서)에서도 있었다. <br>
 **각 서비스가 필요한 자원/시드/설정을 자기 안에 가지고 있어야 분리가 진짜로 독립적이 된다**는 점. <br>
@@ -144,6 +144,6 @@ K6: 29,869 요청 / 0 에러. <br>
 > [notification-service] (8081)    → 알림 컨슈머
 > [메인 app]        (8080)         → coin 마스터데이터 (사실상 비어 있음)
 > ```
-> 도메인을 1:1로 떼지 않고 *기능적 결합과 트랜잭션 경계 기준* 으로 4 services로 묶은 결정이 결과적으로 무리 없이 굴러갔다. <br>
+> 도메인을 1:1로 떼지 않고 기능적 결합과 트랜잭션 경계 기준으로 4 services로 묶은 결정이 결과적으로 무리 없이 굴러갔다. <br>
 > 한 번에 떼지 않고 (1) 결합부터 끊고 (2) 작은 서비스부터 큰 서비스 순으로 분리한 순서도, 분리 도중 발견된 문제 (브릿지 위치, JPA 스캔, 클래스패스 자원) 가 한꺼번에 폭발하지 않게 해 주었다. <br>
 > 다음 단계는 3단계 — DB schema/인스턴스 분리. 지금까지는 5개 서비스가 물리적으로 같은 MySQL을 공유하기 때문에 진짜 분산 시스템이 아니다. 다음 챕터에서 자원까지 떼어내야 풀 MSA에 가까워진다.
