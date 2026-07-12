@@ -1,56 +1,54 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: trading
+  name: projection
   namespace: coin-exchange
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: trading
+      app: projection
   template:
     metadata:
       labels:
-        app: trading
+        app: projection
     spec:
       containers:
-        - name: trading
-          image: coin-exchange/trading:latest
+        - name: projection
+          image: coin-exchange/projection:latest
           imagePullPolicy: IfNotPresent
           ports:
-            - containerPort: 8084
+            - containerPort: 8085
           env:
-            # coin 시드용 DB 연결만 남음 (주문 projection은 projection 서비스로 분리됨)
+            # trading과 같은 trading_db를 공유(projection이 Order/Trade 기록)
             - name: SPRING_DATASOURCE_URL
               value: "jdbc:mysql://trading-db:3306/trading_db?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Seoul"
-            - name: SPRING_DATA_REDIS_HOST
-              value: "redis"
             - name: SPRING_KAFKA_BOOTSTRAP_SERVERS
               value: "kafka:9092"
-            - name: SERVICES_FUNDS_BASE_URL
-              value: "http://funds:8083"
+            - name: SPRING_RABBITMQ_HOST
+              value: "rabbitmq"
           resources:
             requests:
-              cpu: 200m
-              memory: 384Mi
+              cpu: 100m
+              memory: 256Mi
             limits:
-              cpu: 1000m
-              memory: 768Mi
+              cpu: 500m
+              memory: 512Mi
           readinessProbe:
             httpGet:
               path: /actuator/health
-              port: 8084
+              port: 8085
             initialDelaySeconds: 30
             periodSeconds: 5
 ---
 apiVersion: v1
 kind: Service
 metadata:
-  name: trading
+  name: projection
   namespace: coin-exchange
 spec:
   selector:
-    app: trading
+    app: projection
   ports:
-    - port: 8084
-      targetPort: 8084
+    - port: 8085
+      targetPort: 8085
