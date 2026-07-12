@@ -20,6 +20,9 @@ spring:
     port: 5672
     username: guest
     password: guest
+    # 알림 발행 시 trace 컨텍스트를 메시지 헤더로 전파 → notification이 이어받음
+    template:
+      observation-enabled: true
   kafka:
     bootstrap-servers: coin-exchange-kafka:9092
     consumer:
@@ -32,6 +35,8 @@ spring:
     listener:
       # DB 반영을 마친 뒤 offset 커밋 → at-least-once (유실 방지)
       ack-mode: manual
+      # Kafka 레코드 헤더의 trace 컨텍스트를 이어받아 소비 스팬을 연결
+      observation-enabled: true
 
 server:
   port: 8085
@@ -41,6 +46,9 @@ management:
     web:
       exposure:
         include: health,info,prometheus
+  tracing:
+    sampling:
+      probability: 1.0
   metrics:
     tags:
       application: projection-service

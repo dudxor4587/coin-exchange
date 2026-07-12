@@ -20,6 +20,9 @@ spring:
       host: coin-exchange-redis
       port: 6379
   kafka:
+    # 프로듀서가 Kafka 레코드 헤더로 trace 컨텍스트를 실어 보냄 → projection이 이어받음
+    template:
+      observation-enabled: true
     bootstrap-servers: coin-exchange-kafka:9092
     producer:
       # durable 로그: 모든 복제본에 저장 확인 후 ack (단일 브로커라 실질 acks=1)
@@ -41,6 +44,9 @@ management:
   health:
     circuitbreakers:
       enabled: true
+  tracing:
+    sampling:
+      probability: 1.0   # 로컬 관찰용 — 모든 요청 트레이싱
   metrics:
     tags:
       application: trading-service

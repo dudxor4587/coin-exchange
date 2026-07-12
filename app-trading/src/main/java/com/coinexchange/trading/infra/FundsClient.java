@@ -33,11 +33,13 @@ public class FundsClient {
 
     private final RestClient restClient;
 
-    public FundsClient(@Value("${services.funds.base-url}") String baseUrl) {
+    // 주입받은 RestClient.Builder는 Spring Boot가 ObservationRegistry로 계측해 둔 것이라,
+    // 이걸 쓰면 trading→funds 호출에 trace 컨텍스트가 헤더로 전파된다(직접 builder()로 만들면 전파 안 됨).
+    public FundsClient(@Value("${services.funds.base-url}") String baseUrl, RestClient.Builder builder) {
         SimpleClientHttpRequestFactory factory = new SimpleClientHttpRequestFactory();
         factory.setConnectTimeout(Duration.ofSeconds(2));
         factory.setReadTimeout(Duration.ofSeconds(2));
-        this.restClient = RestClient.builder()
+        this.restClient = builder.clone()
                 .baseUrl(baseUrl)
                 .requestFactory(factory)
                 .build();
