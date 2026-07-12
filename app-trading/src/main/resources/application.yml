@@ -35,6 +35,12 @@ management:
     web:
       exposure:
         include: health,info,prometheus
+  endpoint:
+    health:
+      show-details: always
+  health:
+    circuitbreakers:
+      enabled: true
   metrics:
     tags:
       application: trading-service
@@ -43,6 +49,23 @@ management:
         http.server.requests: true
         trade_latency_seconds: true
         order.flow.segment: true
+
+resilience4j:
+  circuitbreaker:
+    instances:
+      funds:
+        register-health-indicator: true
+        sliding-window-type: count_based
+        sliding-window-size: 20
+        minimum-number-of-calls: 10
+        failure-rate-threshold: 50           # 최근 호출의 50%가 실패하면 open
+        slow-call-duration-threshold: 2s     # 2초 넘는 호출은 느린 호출로 간주
+        slow-call-rate-threshold: 50
+        wait-duration-in-open-state: 10s     # open 후 10초 뒤 half-open으로 시험
+        permitted-number-of-calls-in-half-open-state: 3
+        automatic-transition-from-open-to-half-open-enabled: true
+        ignore-exceptions:
+          - org.springframework.web.client.HttpClientErrorException  # funds 4xx(업무 오류)는 회로에 카운트 안 함
 
 jwt:
   secret: dev-secret-change-me-this-must-be-long-enough-for-hs256-algorithm
