@@ -47,6 +47,13 @@ management:
   tracing:
     sampling:
       probability: 1.0   # 로컬 관찰용 — 모든 요청 트레이싱
+  zipkin:
+    tracing:
+      endpoint: http://coin-exchange-zipkin:9411/api/v2/spans
+  observations:
+    enable:
+      spring:
+        security: false   # 보안 필터 내부 span(노이즈) 제외 — 헬스체크 orphan trace도 사라짐
   metrics:
     tags:
       application: trading-service

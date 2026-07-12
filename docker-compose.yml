@@ -247,6 +247,14 @@ services:
       - coin-exchange-prometheus
     restart: always
 
+  # 분산 트레이싱 수집·시각화. 서비스들이 span을 여기로 보내면 폭포수로 조회.
+  coin-exchange-zipkin:
+    image: openzipkin/zipkin:3
+    container_name: coin-exchange-zipkin
+    ports:
+      - "9411:9411"
+    restart: always
+
   coin-exchange-redis:
     image: redis:7.2
     container_name: coin-exchange-redis

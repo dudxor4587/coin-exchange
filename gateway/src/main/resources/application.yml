@@ -28,6 +28,9 @@ management:
   tracing:
     sampling:
       probability: 1.0
+  zipkin:
+    tracing:
+      endpoint: http://coin-exchange-zipkin:9411/api/v2/spans
 
 jwt:
   secret: dev-secret-change-me-this-must-be-long-enough-for-hs256-algorithm

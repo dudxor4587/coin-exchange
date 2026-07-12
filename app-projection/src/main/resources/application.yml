@@ -49,6 +49,13 @@ management:
   tracing:
     sampling:
       probability: 1.0
+  zipkin:
+    tracing:
+      endpoint: http://coin-exchange-zipkin:9411/api/v2/spans
+  observations:
+    enable:
+      spring:
+        security: false   # 보안 필터 내부 span(노이즈) 제외
   metrics:
     tags:
       application: projection-service

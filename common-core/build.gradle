@@ -7,4 +7,6 @@ dependencies {
     api 'org.springframework.boot:spring-boot-starter-web'
     // 분산 트레이싱 — 요청마다 traceId를 로그에 찍고 서비스 간 전파
     api 'io.micrometer:micrometer-tracing-bridge-brave'
+    // 수집한 span을 Zipkin으로 내보내 폭포수로 시각화
+    api 'io.zipkin.reporter2:zipkin-reporter-brave'
 }
