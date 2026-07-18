@@ -45,8 +45,6 @@ services:
     expose:
       - "8084"
     depends_on:
-      coin-exchange-trading-db:
-        condition: service_healthy
       coin-exchange-redis:
         condition: service_healthy
       coin-exchange-kafka:

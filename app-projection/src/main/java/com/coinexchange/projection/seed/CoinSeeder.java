@@ -1,4 +1,4 @@
-package com.coinexchange.trading.seed;
+package com.coinexchange.projection.seed;
 
 import com.coinexchange.coin.domain.Coin;
 import com.coinexchange.coin.domain.repository.CoinRepository;

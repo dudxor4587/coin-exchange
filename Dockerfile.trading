@@ -20,7 +20,6 @@ RUN chmod +x gradlew && ./gradlew :app-trading:dependencies --no-daemon || true
 COPY events-contract/src events-contract/src
 COPY common-core/src common-core/src
 COPY common-auth/src common-auth/src
-COPY domain-coin/src domain-coin/src
 COPY domain-order/src domain-order/src
 COPY domain-matching/src domain-matching/src
 COPY app-trading/src app-trading/src

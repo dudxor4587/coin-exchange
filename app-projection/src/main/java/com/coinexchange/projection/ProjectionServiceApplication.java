@@ -14,17 +14,20 @@ import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
         "com.coinexchange.projection",
         "com.coinexchange.order",
         "com.coinexchange.trade",
+        "com.coinexchange.coin",
         "com.coinexchange.common"
 })
 @EntityScan(basePackages = {
         "com.coinexchange.order.domain",
         "com.coinexchange.trade.domain",
+        "com.coinexchange.coin.domain",
         "com.coinexchange.common.domain",
         "com.coinexchange.projection.infra.projection"
 })
 @EnableJpaRepositories(basePackages = {
         "com.coinexchange.order.domain.repository",
         "com.coinexchange.trade.domain.repository",
+        "com.coinexchange.coin.domain.repository",
         "com.coinexchange.projection.infra.projection"
 })
 public class ProjectionServiceApplication {

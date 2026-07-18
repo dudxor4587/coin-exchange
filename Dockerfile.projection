@@ -22,6 +22,7 @@ COPY events-contract/src events-contract/src
 COPY common-core/src common-core/src
 COPY domain-order/src domain-order/src
 COPY domain-trade/src domain-trade/src
+COPY domain-coin/src domain-coin/src
 COPY app-projection/src app-projection/src
 RUN ./gradlew :app-projection:bootJar --no-daemon -x test
 

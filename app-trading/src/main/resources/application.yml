@@ -3,18 +3,6 @@ spring:
     name: trading-service
   profiles:
     active: test
-  datasource:
-    url: jdbc:mysql://coin-exchange-trading-db:3306/trading_db?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Seoul
-    username: root
-    password: 1234
-    driver-class-name: com.mysql.cj.jdbc.Driver
-  jpa:
-    hibernate:
-      ddl-auto: update
-    properties:
-      hibernate:
-        dialect: org.hibernate.dialect.MySQLDialect
-    show-sql: false
   data:
     redis:
       host: coin-exchange-redis
@@ -41,6 +29,12 @@ management:
   endpoint:
     health:
       show-details: always
+      probes:
+        enabled: true            # /health/liveness, /health/readiness 노출
+      group:
+        # 트래픽 받을 준비 = trading이 서빙에 실제로 필요한 것만. db는 안 씀(무상태), 회로차단기는 open이어도 정상 동작이라 제외.
+        readiness:
+          include: readinessState, redis, kafka
   health:
     circuitbreakers:
       enabled: true

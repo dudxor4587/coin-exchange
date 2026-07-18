@@ -46,6 +46,15 @@ management:
     web:
       exposure:
         include: health,info,prometheus
+  endpoint:
+    health:
+      show-details: always
+      probes:
+        enabled: true
+      group:
+        # projection은 로그 소비(kafka) → DB 기록(db) → 알림 발행(rabbit)이 다 필요하다.
+        readiness:
+          include: readinessState, db, kafka, rabbit
   tracing:
     sampling:
       probability: 1.0

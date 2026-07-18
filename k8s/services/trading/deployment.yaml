@@ -20,9 +20,7 @@ spec:
           ports:
             - containerPort: 8084
           env:
-            # coin 시드용 DB 연결만 남음 (주문 projection은 projection 서비스로 분리됨)
-            - name: SPRING_DATASOURCE_URL
-              value: "jdbc:mysql://trading-db:3306/trading_db?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Seoul"
+            # 무상태 — DB 없음 (주문 projection·coin 시드는 projection 서비스가 맡음)
             - name: SPRING_DATA_REDIS_HOST
               value: "redis"
             - name: SPRING_KAFKA_BOOTSTRAP_SERVERS
@@ -36,9 +34,16 @@ spec:
             limits:
               cpu: 1000m
               memory: 768Mi
+          # liveness = 앱 살아있나(재시작 판단, 의존성 무관). readiness = 트래픽 받을 준비(redis·kafka 반영).
+          livenessProbe:
+            httpGet:
+              path: /actuator/health/liveness
+              port: 8084
+            initialDelaySeconds: 30
+            periodSeconds: 10
           readinessProbe:
             httpGet:
-              path: /actuator/health
+              path: /actuator/health/readiness
               port: 8084
             initialDelaySeconds: 30
             periodSeconds: 5
