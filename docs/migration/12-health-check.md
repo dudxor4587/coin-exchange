@@ -16,7 +16,7 @@ Spring Boot는 db·redis·rabbit은 헬스 지표를 자동으로 만들어주�
 ## 왜 이렇게 어긋났나
 두 가지가 겹쳤다. <br>
 1. **Spring 기본값이 옛 구조에 맞춰져 있었다.** trading에 DataSource가 있으면 Spring이 db 지표를 자동으로 붙인다. 예전엔 trading이 주문을 DB에 동기로 저장했으니 맞는 지표였는데, 구조를 바꿔 db를 안 쓰게 됐어도 헬스 설정은 안 따라왔다.
-2. **liveness/readiness가 안 나뉘어 있었다.** health 하나가 "재시작해라"와 "트래픽 빼라"를 뭉뚱그렸다. (Spring은 이 분리를 k8s에서 돌 때만 자동으로 켠다. 우리는 compose로 개발해 꺼져 있었다.)
+2. **liveness/readiness가 안 나뉘어 있었다.** health 하나가 "재시작해라"와 "트래픽 빼라"를 뭉뚱그렸다. Spring은 k8s에서 `/health/liveness`·`/health/readiness` 두 엔드포인트를 자동으로 만들어주긴 하지만, 그건 빈 껍데기에 가깝다 — 자동 readiness에는 의존성이 안 들어가고(`readinessState` 하나뿐이라 redis·kafka·db를 확인하지 않는다), 게다가 우리 매니페스트의 readinessProbe는 그 엔드포인트가 아니라 aggregate(`/actuator/health`)를 가리키고 있었다. 그래서 k8s로 올려도 두 문제가 그대로 터진다. 자동으로 되는 건 절반뿐이고, readiness에 의존성을 넣는 것과 매니페스트를 그 엔드포인트로 배선하는 건 직접 해야 한다.
 
 # 고침 1 — db는 구조로 뿌리뽑았다
 db를 헬스에서 빼는 방법은 두 가지였다. (a) "db 검사 하지 마"로 설정에서 가리기, (b) trading이 db를 아예 안 갖게 하기. <br>
