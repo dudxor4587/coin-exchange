@@ -53,20 +53,15 @@ for _, price in ipairs(matching_prices) do
         local buy_remaining = buy_rem - matched_amount
         local sell_remaining = sell_rem - matched_amount
 
-        -- ############### [수정됨] 반환 데이터 구조 변경 ###############
-        -- 기존의 map 형태 대신, key-value 쌍의 list(배열) 형태로 데이터를 삽입합니다.
-        -- 이렇게 하면 Java(Spring Data Redis)에서 데이터를 안정적으로 받을 수 있습니다.
         table.insert(trades, {
             "buyOrderId", buy_order_id,
             "sellOrderId", sell_order_id,
             "buyerId", buy_order_info[1],
             "sellerId", sell_order_info[1],
-            -- Lua의 숫자는 기본적으로 double 타입이므로 문자열로 변환하여 타입 일관성을 유지합니다.
             "matchedAmount", tostring(matched_amount),
             "price", price,
             "coinId", buy_order_info[3]
         })
-        -- #############################################################
 
         if buy_remaining <= 0 then
             redis.call('DEL', buy_order_key)
