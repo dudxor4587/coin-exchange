@@ -31,8 +31,10 @@ spec:
               value: "PLAINTEXT://kafka:9092"
             - name: KAFKA_LISTENER_SECURITY_PROTOCOL_MAP
               value: "CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT"
+            # 컨트롤러는 같은 파드 안이다. Service 이름(kafka)으로 잡으면 파드가 Ready여야
+            # 엔드포인트가 생기는데, Ready가 되려면 브로커가 떠야 해서 교착에 빠진다.
             - name: KAFKA_CONTROLLER_QUORUM_VOTERS
-              value: "0@kafka:9093"
+              value: "0@localhost:9093"
             - name: KAFKA_CONTROLLER_LISTENER_NAMES
               value: "CONTROLLER"
             - name: KAFKA_INTER_BROKER_LISTENER_NAME
