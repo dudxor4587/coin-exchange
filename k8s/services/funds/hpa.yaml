@@ -1,0 +1,23 @@
+# funds 오토스케일러 (측정용, 채택하지 않음).
+# 8단계 부하 측정에서 주문당 시간의 ~80%가 돈 경로(debit/settle)였으므로 funds를 확장 대상 후보로 보고
+# 표준 방식(CPU 사용률 기준)으로 붙여 측정했다. 결과는 "걸리기는 하는데 처리량이 오히려 내려간다"였다.
+# 그래서 클러스터에 적용하지 않는다. 자세한 측정과 이유: docs/migration/14-hpa.md
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: funds
+  namespace: coin-exchange
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: funds
+  minReplicas: 1
+  maxReplicas: 5
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 70   # requests.cpu=200m 기준이라 140m만 넘으면 확장한다
