@@ -1,4 +1,4 @@
-package com.coinexchange.order.presentation.dto;
+package com.coinexchange.trading.presentation.dto;
 
 import java.math.BigDecimal;
 

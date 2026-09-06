@@ -4,6 +4,7 @@ COPY gradle gradle
 COPY gradlew settings.gradle build.gradle ./
 COPY events-contract/build.gradle events-contract/
 COPY common-core/build.gradle common-core/
+COPY common-jpa/build.gradle common-jpa/
 COPY common-auth/build.gradle common-auth/
 COPY infra-notification/build.gradle infra-notification/
 COPY domain-coin/build.gradle domain-coin/
@@ -16,6 +17,7 @@ COPY domain-wallet/build.gradle domain-wallet/
 RUN chmod +x gradlew && ./gradlew :infra-notification:dependencies --no-daemon || true
 COPY events-contract/src events-contract/src
 COPY common-core/src common-core/src
+COPY common-jpa/src common-jpa/src
 COPY infra-notification/src infra-notification/src
 RUN ./gradlew :infra-notification:bootJar --no-daemon -x test
 

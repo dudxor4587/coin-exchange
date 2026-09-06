@@ -1,8 +1,8 @@
 package com.coinexchange.trading.presentation;
 
 import com.coinexchange.common.auth.annotation.CurrentUserId;
-import com.coinexchange.order.presentation.dto.BuyOrderRequest;
-import com.coinexchange.order.presentation.dto.SellOrderRequest;
+import com.coinexchange.trading.presentation.dto.BuyOrderRequest;
+import com.coinexchange.trading.presentation.dto.SellOrderRequest;
 import com.coinexchange.trading.application.OrderFlowService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
